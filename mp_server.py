@@ -5,7 +5,7 @@ import Queue
 import socket
 import datetime
 
-HOST = '127.0.0.1'
+HOST = ''
 PORT = 80
 SIZE = 1024
 
