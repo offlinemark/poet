@@ -10,7 +10,11 @@ if len(sys.argv) != 3:
     print 'Usage: ./malping [mp_server ip] [delay time (s)]'
     sys.exit(1)
 HOST = sys.argv[1]
-DELAY = int(sys.argv[2])
+try:
+    DELAY = int(sys.argv[2])
+except ValueError:
+    print '[!] Error: Third parameter (delay time) must be an int.'
+    sys.exit(1)
 SIZE = 1024
 PORT = 80
 
