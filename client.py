@@ -2,6 +2,7 @@
 
 import sys
 import time
+import socket
 import urllib2
 import argparse
 import logging as log
@@ -34,6 +35,13 @@ def is_active(host, port):
     return False
 
 
+def ctrl_shell_client(host, port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((host, port))
+    s.recv(SIZE)
+    s.close()
+
+
 def main():
     args = get_args()
 
@@ -53,6 +61,7 @@ def main():
         try:
             if is_active(HOST, PORT):
                 log.info('[+] ({}) Server is active'.format(datetime.now()))
+                ctrl_shell_client(HOST, PORT)
             else:
                 log.info('[!] ({}) Server is inactive'.format(datetime.now()))
             time.sleep(DELAY)
