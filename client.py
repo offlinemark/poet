@@ -104,7 +104,7 @@ def sockrecv(s):
 def parse_exec_cmds(inp):
     cmds = []
     inp = inp[5:]
-    num_cmds = len(re.findall('"', inp)) / 2
+    num_cmds = inp.count('"') / 2
     for i in range(num_cmds):
         first = inp.find('"')
         second = inp.find('"', first+1)
