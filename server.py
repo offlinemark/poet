@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import re
 import socket
 import argparse
 from datetime import datetime
@@ -16,13 +17,26 @@ def get_args():
 
 
 def ctrl_shell_server(s, PORT):
-    print '[+] ({}) Entering control shell.'.format(datetime.now())
+    print '[+] ({}) Entering perennial shell (psh)'.format(datetime.now())
     conn, addr = s.accept()
     while True:
-        inp = raw_input('> ')
-        if inp == 'exit':
+        try:
+            inp = raw_input('psh > ')
+            if inp == 'exit':
+                break
+            elif inp == '':
+                continue
+            elif inp == 'help':
+                print 'commands:\n  exec'
+            elif inp.startswith('exec'):
+                if re.search('^exec (".+"\ )+$', inp + ' '):
+                    print 'execing'
+                else:
+                    print 'usage: exec "cmd1" ["cmd2" "cmd3" ...]'
+            else:
+                print 'psh: command not found'
+        except KeyboardInterrupt:
             break
-        print 'yay shell'
     conn.close()
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
