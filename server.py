@@ -82,6 +82,9 @@ def ctrl_shell_server(s, PORT):
                 print 'psh: {}: command not found'.format(inp.split()[0])
         except KeyboardInterrupt:
             print
+            continue
+        except EOFError:
+            print
             break
     socksend(conn, 'fin')
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
@@ -117,6 +120,9 @@ def ctrl_shell_shell(s):
             else:
                 print ctrl_shell_exchange(s, 'shell {}'.format(inp))
         except KeyboardInterrupt:
+            print
+            continue
+        except EOFError:
             print
             break
 
