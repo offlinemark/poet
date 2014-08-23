@@ -42,7 +42,7 @@ def ctrl_shell_client(host, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     while True:
-        inp = base64.b64decode(sockrecv(s))
+        inp = sockrecv(s)
         if inp == 'fin':
             break
         elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
@@ -98,7 +98,7 @@ def sockrecv(s):
             raise socket.error('socket connection broken')
         chunks.append(chunk)
         bytes_recvd += len(chunk)
-    return ''.join(chunks)
+    return base64.b64decode(''.join(chunks))
 
 
 def parse_exec_cmds(inp):

