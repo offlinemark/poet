@@ -76,7 +76,7 @@ def ctrl_shell_server(s, PORT):
                 if inp == 'shell':
                     ctrl_shell_shell(conn, prompt)
                 else:
-                    print 'Basic shell on target.'
+                    print 'Basic shell on target (forwards stdout of commands executed).'
                     print 'usage: shell [-h]'
                     print '\noptions:'
                     print '-h\t\tshow help'
