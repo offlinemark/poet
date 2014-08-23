@@ -43,7 +43,7 @@ def ctrl_shell_server(s, PORT):
             elif inp == cmds[0]:
                 break
             # help
-            elif inp == cmds[1]:
+            elif inp.split()[0] == cmds[1]:
                 print 'Commands:'
                 for cmd in cmds:
                     print '  {}'.format(cmd)
