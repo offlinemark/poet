@@ -9,7 +9,7 @@ import argparse
 from datetime import datetime
 
 OUT = 'archive'
-SIZE = 1024
+SIZE = 4096
 PSH_PROMPT = 'psh > '
 FAKEOK = """HTTP/1.1 200 OK\r
 Date: Tue, 19 Mar 2013 22:12:25 GMT\r
