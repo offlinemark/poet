@@ -162,6 +162,7 @@ def main():
                 log.info('[!] ({}) Server is inactive'.format(datetime.now()))
             time.sleep(DELAY)
     except KeyboardInterrupt:
+        print
         log.info('[-] ({}) Perennial terminated.'.format(datetime.now()))
     except socket.error:
         log.info('[!] ({}) Socket error.'.format(datetime.now()))
