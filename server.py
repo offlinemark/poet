@@ -9,6 +9,7 @@ import argparse
 from datetime import datetime
 
 OUT = 'archive'
+SBUF_LEN = 9
 SIZE = 4096
 PSH_PROMPT = 'psh > '
 FAKEOK = """HTTP/1.1 200 OK\r
@@ -144,7 +145,10 @@ def socksend(s, msg):
     """
 
     pkg = base64.b64encode(msg)
-    pkg_size = '{:0>5d}'.format((len(pkg)))
+    fmt = '{:0>%dd}' % SBUF_LEN
+    pkg_size = fmt.format(len(pkg))
+    if len(pkg_size) > SBUF_LEN:
+        raise socket.error('too much data!')
     pkg = pkg_size + pkg
     sent = s.sendall(pkg)
     if sent:
@@ -158,7 +162,7 @@ def sockrecv(s):
         Returns the message.
 
         TODO: Under high network loads, it's possible that the initial recv
-        may not even return the first 5 bytes so another loop is necessary
+        may not even return the first 9 bytes so another loop is necessary
         to ascertain that.
     """
 
@@ -167,7 +171,7 @@ def sockrecv(s):
     initial = s.recv(SIZE)
     if not initial:
         raise socket.error('socket connection broken')
-    msglen, initial = (int(initial[:5]), initial[5:])
+    msglen, initial = (int(initial[:SBUF_LEN]), initial[SBUF_LEN:])
     bytes_recvd = len(initial)
     chunks.append(initial)
     while bytes_recvd < msglen:
