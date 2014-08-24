@@ -55,10 +55,7 @@ def ctrl_shell_server(s, PORT):
                 if re.search('^exec ((("[^"]+")|(-o))\ )+$', inp):
                     # remove -o's, trailing space
                     tmp = inp.replace('-o ', '')[:-1]
-                    response = ctrl_shell_exchange(conn, tmp)
-                    print response
-                    if '-o' in inp.split():
-                        ctrl_shell_write(response, inp.split()[0], OUT)
+                    ctrl_shell_generic(conn, tmp, '-o' in inp.split())
                 else:
                     print 'Execute commands on target.'
                     print 'usage: exec "cmd1" ["cmd2" "cmd3" ...]'
@@ -66,10 +63,7 @@ def ctrl_shell_server(s, PORT):
             # recon
             elif inp.split()[0] == cmds[3]:
                 if re.search('^recon( -o)?$', inp):
-                    response = ctrl_shell_exchange(conn, inp.split()[0])
-                    print response
-                    if '-o' in inp.split():
-                        ctrl_shell_write(response, inp.split()[0], OUT)
+                    ctrl_shell_generic(conn, inp.split()[0], '-o' in inp.split())
                 else:
                     print 'Basic reconaissance of target.'
                     print 'usage: recon [-h] [-o]'
@@ -98,9 +92,11 @@ def ctrl_shell_server(s, PORT):
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
 
-def ctrl_shell_exchange(conn, inp):
-    socksend(conn, inp)
-    return sockrecv(conn)
+def ctrl_shell_generic(s, msg, write_flag):
+    response = ctrl_shell_exchange(s, msg)
+    print response
+    if write_flag:
+        ctrl_shell_write(response, msg.split()[0], OUT)
 
 
 def ctrl_shell_write(response, prefix, out_dir):
@@ -134,6 +130,11 @@ def ctrl_shell_shell(s, prompt):
         except EOFError:
             print
             break
+
+
+def ctrl_shell_exchange(conn, msg):
+    socksend(conn, msg)
+    return sockrecv(conn)
 
 
 def socksend(s, msg):
