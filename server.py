@@ -100,8 +100,8 @@ def ctrl_shell_generic(s, msg, write_flag):
 
 
 def ctrl_shell_write(response, prefix, out_dir):
-    ts = datetime.now().strftime('%Y%m%d%S%f')
-    out_ts_dir = '{}/{}'.format(out_dir, ts[:-8])
+    ts = datetime.now().strftime('%Y%m%d%M%S')
+    out_ts_dir = '{}/{}'.format(out_dir, ts[:len('20140101')])
     outfile = '{}/{}-{}.txt'.format(out_ts_dir, prefix, ts)
     response = '{}\n\n{}'.format(datetime.now(), response)
     if not os.path.isdir(out_dir):
