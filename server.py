@@ -203,8 +203,8 @@ def main():
         conn.close()
         try:
             ctrl_shell_server(s, PORT)
-        except socket.error:
-            print '[!] ({}) Socket error.'.format(datetime.now())
+        except socket.error as e:
+            print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
             print '[-] ({}) Perennial terminated.'.format(datetime.now())
             sys.exit(0)
     print '[-] ({}) Perennial terminated.'.format(datetime.now())

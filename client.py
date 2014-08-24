@@ -177,8 +177,8 @@ def main():
     except KeyboardInterrupt:
         print
         log.info('[-] ({}) Perennial terminated.'.format(datetime.now()))
-    except socket.error:
-        log.info('[!] ({}) Socket error.'.format(datetime.now()))
+    except socket.error as e:
+        log.info('[!] ({}) Socket error: {}'.format(datetime.now(), e.message))
         log.info('[-] ({}) Perennial terminated.'.format(datetime.now()))
         sys.exit(0)
 
