@@ -113,15 +113,18 @@ def shell_generic(s, req, write_flag=False, write_file=None):
 def shell_write(response, prefix, out_dir, write_file=None):
     ts = datetime.now().strftime('%Y%m%d%M%S')
     out_ts_dir = '{}/{}'.format(out_dir, ts[:len('20140101')])
+    out_prefix_dir = '{}/{}'.format(out_ts_dir, prefix)
     if write_file:
-        outfile = '{}/{}'.format(out_ts_dir, write_file)
+        outfile = '{}/{}'.format(out_prefix_dir, write_file)
     else:
-        outfile = '{}/{}-{}.txt'.format(out_ts_dir, prefix, ts)
+        outfile = '{}/{}-{}.txt'.format(out_prefix_dir, prefix, ts)
     response = '{}\n\n{}'.format(datetime.now(), response)
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
     if not os.path.isdir(out_ts_dir):
         os.mkdir(out_ts_dir)
+    if not os.path.isdir(out_prefix_dir):
+        os.mkdir(out_prefix_dir)
     with open(outfile, 'w') as f:
         f.write(response)
         print 'psh : {} written to {}'.format(prefix, outfile)
