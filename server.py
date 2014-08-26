@@ -35,7 +35,7 @@ def shell_server(s, PORT):
     print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
     prompt = shell_exchange(conn, 'getprompt')
-    print 'Welcome to psh, the perennial shell!'
+    print 'Welcome to psh, the poet shell!'
     print 'Running `help\' will give you a list of supported commands.'
     while True:
         try:
@@ -248,7 +248,7 @@ def main():
     s.bind(('', PORT))
     s.listen(1)
 
-    print '[+] Perennial server started on {}.'.format(PORT)
+    print '[+] Poet server started on {}.'.format(PORT)
     conn, addr = s.accept()
     print '[i] Connected By: {} at {}'.format(addr, datetime.now())
     ping = conn.recv(SIZE)
@@ -261,9 +261,9 @@ def main():
             shell_server(s, PORT)
         except socket.error as e:
             print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
-            print '[-] ({}) Perennial terminated.'.format(datetime.now())
+            print '[-] ({}) Poet terminated.'.format(datetime.now())
             sys.exit(0)
-    print '[-] ({}) Perennial terminated.'.format(datetime.now())
+    print '[-] ({}) Poet terminated.'.format(datetime.now())
 
 if __name__ == '__main__':
     main()

@@ -170,7 +170,7 @@ def main():
     HOST = args.host
     PORT = int(args.port) if args.port else 443
 
-    log.info(('[+] Perennial started with delay of {} seconds to port {}.' +
+    log.info(('[+] Poet started with delay of {} seconds to port {}.' +
               ' Ctrl-c to exit.').format(DELAY, PORT))
 
     try:
@@ -183,10 +183,10 @@ def main():
             time.sleep(DELAY)
     except KeyboardInterrupt:
         print
-        log.info('[-] ({}) Perennial terminated.'.format(datetime.now()))
+        log.info('[-] ({}) Poet terminated.'.format(datetime.now()))
     except socket.error as e:
         log.info('[!] ({}) Socket error: {}'.format(datetime.now(), e.message))
-        log.info('[-] ({}) Perennial terminated.'.format(datetime.now()))
+        log.info('[-] ({}) Poet terminated.'.format(datetime.now()))
         sys.exit(0)
 
 if __name__ == '__main__':
