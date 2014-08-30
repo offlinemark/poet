@@ -54,8 +54,8 @@ def shell_server(s, PORT):
             # exec
             elif base == cmds[2]:
                 inp += ' '  # for regex
-                exec_regex = '^exec ((("[^"]+")|(-o( [\w.]+)?))\ )+$'
-                if re.search(exec_regex, inp) and '"' in inp:
+                exec_regex = '^exec( -o( [\w.]+)?)? (("[^"]+")\ )+$'
+                if re.search(exec_regex, inp):
                     shell_generic(conn, *shell_exec_preproc(inp))
                 else:
                     shell_cmd_help(cmds, 2)
@@ -159,17 +159,15 @@ def shell_cmd_help(cmds, ind):
 
 
 def shell_exec_preproc(inp):
-    # normalize
-    tmp = inp.replace('-o', '').replace('  ', ' ')
-    tmp = tmp.split()
-    # find potential custom filename
+    tmp = inp.split()
     write_file = None
-    for i, each in enumerate(tmp):
-        if each != 'exec' and '"' not in each:
-            write_file = each
-            del tmp[i]
+    write_flag = tmp[1] == '-o'
+    if write_flag:
+        if '"' not in tmp[2]:
+            write_file = tmp[2]
+            del tmp[2]
+        del tmp[1]
     tmp = ' '.join(tmp)
-    write_flag = '-o' in inp.split()
     return tmp, write_flag, write_file
 
 
