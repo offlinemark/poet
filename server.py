@@ -4,6 +4,7 @@ import re
 import sys
 import base64
 import socket
+import struct
 import os.path
 import argparse
 from datetime import datetime
@@ -231,16 +232,13 @@ def shell_exchange(conn, req):
 def socksend(s, msg):
     """
         Sends message using socket operating under the convention that the
-        first nine bytes received are the size of the following message.
+        message is prefixed by a big-endian 32 bit value indicating the length
+        of the following base64 string.
     """
 
     pkg = base64.b64encode(msg)
-    fmt = '{:0>%dd}' % SBUF_LEN
-    pkg_size = fmt.format(len(pkg))
-    if len(pkg_size) > SBUF_LEN:
-        raise socket.error('too much data!')
-    pkg = pkg_size + pkg
-    sent = s.sendall(pkg)
+    pkg_size = struct.pack('>i', len(pkg))
+    sent = s.sendall(pkg_size + pkg)
     if sent:
         raise socket.error('socket connection broken')
 
@@ -248,7 +246,9 @@ def socksend(s, msg):
 def sockrecv(s):
     """
         Receives message from socket operating under the convention that the
-        first nine bytes received are the size of the following message.
+        message is prefixed by a big-endian 32 bit value indicating the length
+        of the following base64 string.
+
         Returns the message.
 
         TODO: Under high network loads, it's possible that the initial recv
@@ -261,7 +261,7 @@ def sockrecv(s):
     initial = s.recv(SIZE)
     if not initial:
         raise socket.error('socket connection broken')
-    msglen, initial = (int(initial[:SBUF_LEN]), initial[SBUF_LEN:])
+    msglen, initial = (struct.unpack('>I', initial[:4])[0], initial[4:])
     bytes_recvd = len(initial)
     chunks.append(initial)
     while bytes_recvd < msglen:
