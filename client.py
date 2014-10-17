@@ -62,10 +62,21 @@ class PoetSocket(object):
 
         chunks = []
         bytes_recvd = 0
-        initial = self.s.recv(SIZE)
-        if not initial:
-            raise socket.error('socket connection broken')
-        msglen, initial = (struct.unpack('>I', initial[:4])[0], initial[4:])
+        prefix_len = 4
+
+        # In case we don't get all 4 bytes of the prefix the first recv(),
+        # this ensures we'll eventually get it intact
+        while bytes_recvd < prefix_len:
+            chunk = self.s.recv(SIZE)
+            if not chunk:
+                raise socket.error('socket connection broken')
+            chunks.append(chunk)
+            bytes_recvd += len(chunk)
+
+        initial = ''.join(chunks)
+        msglen, initial = (struct.unpack('>I', initial[:prefix_len])[0],
+                           initial[prefix_len:])
+        del chunks[:]
         bytes_recvd = len(initial)
         chunks.append(initial)
         while bytes_recvd < msglen:
