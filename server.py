@@ -325,7 +325,7 @@ def main():
     s = PoetSocketServer(PORT)
     print '[+] Poet server started on {}.'.format(PORT)
     conn, addr = s.accept()
-    print '[i] Connected By: {} at {}'.format(addr, datetime.now())
+    print '[+] ({}) Connected By: {}'.format(datetime.now(), addr)
     ping = conn.recv(SIZE)
     if not ping:
         raise socket.error('socket connection broken')
