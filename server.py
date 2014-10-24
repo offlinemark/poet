@@ -2,6 +2,7 @@
 
 import re
 import sys
+import zlib
 import base64
 import socket
 import struct
@@ -158,6 +159,7 @@ class PoetServer(object):
                             if 'No such' in resp:
                                 print 'psh : {}: {}'.format(resp, file)
                                 continue
+                            resp = zlib.decompress(resp)
                             write_file = file.split('/')[-1].strip('.')
                             self.write(resp, base, OUT, write_file)
                     else:
@@ -211,6 +213,8 @@ class PoetServer(object):
 
     def generic(self, req, write_flag=False, write_file=None):
         resp = self.conn.exchange(req)
+        if req == self.cmds[3]:
+            resp = zlib.decompress(resp)
         print resp
         if write_flag:
             self.write(resp, req.split()[0], OUT, write_file)
@@ -221,9 +225,8 @@ class PoetServer(object):
         out_prefix_dir = '{}/{}'.format(out_ts_dir, prefix)
         if write_file:
             tmp = write_file.split('.')
-            file = tmp[0]
-            ext = ''.join(tmp[1:])
-            outfile = '{}/{}-{}.{}'.format(out_prefix_dir, file, ts, ext)
+            ext = '.{}'.format(''.join(tmp[1:])) if tmp[1:] else ''
+            outfile = '{}/{}-{}{}'.format(out_prefix_dir, tmp[0], ts, ext)
         else:
             outfile = '{}/{}-{}.txt'.format(out_prefix_dir, prefix, ts)
         if not os.path.isdir(out_dir):
