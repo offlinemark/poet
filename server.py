@@ -350,7 +350,13 @@ class PoetServer(object):
                 elif inp == 'exit':
                     break
                 else:
-                    print self.conn.exchange('shell {}'.format(inp))
+                    self.conn.send('shell {}'.format(inp))
+                    while True:
+                        rec = self.conn.recv()
+                        if rec == 'shelldone':
+                            break
+                        else:
+                            print rec,
             except KeyboardInterrupt:
                 print
                 continue

