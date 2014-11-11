@@ -251,9 +251,10 @@ class PoetServer(object):
         out_ts_dir = '{}/{}'.format(out_dir, ts[:len('20140101')])
         out_prefix_dir = '{}/{}'.format(out_ts_dir, prefix)
         if write_file:
-            tmp = write_file.split('.')
-            ext = '.{}'.format(''.join(tmp[1:])) if tmp[1:] else ''
-            outfile = '{}/{}-{}{}'.format(out_prefix_dir, tmp[0], ts, ext)
+            chunks = write_file.split('.')
+            # separate the file extension from the file name, default to .txt
+            ext = '.{}'.format('.'.join(chunks[1:])) if chunks[1:] else '.txt'
+            outfile = '{}/{}-{}{}'.format(out_prefix_dir, chunks[0], ts, ext)
         else:
             outfile = '{}/{}-{}.txt'.format(out_prefix_dir, prefix, ts)
         if not os.path.isdir(out_dir):
