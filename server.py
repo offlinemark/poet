@@ -337,7 +337,7 @@ class PoetServer(object):
         return tmp, write_flag, write_file
 
     def shell(self, prompt):
-        """Psh `shell' command implementation.
+        """Psh `shell' command server-side.
 
         Args:
             prompt: shell prompt to use
@@ -346,24 +346,34 @@ class PoetServer(object):
         while True:
             try:
                 inp = raw_input(PSH_PROMPT + prompt)
-                if inp == '':
-                    continue
-                elif inp == 'exit':
-                    break
-                else:
-                    self.conn.send('shell {}'.format(inp))
+            except KeyboardInterrupt:  # Ctrl-C -> new prompt
+                print
+                continue
+            except EOFError:  # Ctrl-D -> exit shell
+                print
+                break
+
+            if inp == '':
+                continue
+            elif inp == 'exit':
+                break
+            else:
+                self.conn.send('shell {}'.format(inp))
+                try:
                     while True:
                         rec = self.conn.recv()
                         if rec == 'shelldone':
                             break
                         else:
                             print rec,
-            except KeyboardInterrupt:
-                print
-                continue
-            except EOFError:
-                print
-                break
+                except KeyboardInterrupt:
+                    self.conn.send('shellterm')
+                    # flush lingering socket buffer ('shelldone' and any
+                    # excess data) and sync client/server
+                    while self.conn.recv() != 'shelldone':
+                        pass
+                    print
+                    continue
 
 
 def get_args():
