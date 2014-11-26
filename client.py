@@ -218,7 +218,21 @@ class PoetClient(object):
             s: PoetSocketClient instance
         """
 
-        proc = sp.Popen(inp[6:], stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
+        inp = inp[6:]  # get rid of 'shell ' prefix
+
+        # handle cd builtin
+        if re.search('^cd( .+)?$', inp):
+            if inp == 'cd':
+                os.chdir(os.path.expanduser('~'))
+            else:
+                try:
+                    os.chdir(os.path.expanduser(inp[3:]))
+                except OSError as e:
+                    s.send('cd: {}\n'.format(e.strerror))
+            return
+
+        # everything else
+        proc = sp.Popen(inp, stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
         while True:
             readable = select.select([proc.stdout, s.s], [], [], 30)[0]
             for fd in readable:
