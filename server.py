@@ -11,7 +11,7 @@ import argparse
 from datetime import datetime
 
 OUT = 'archive'
-SBUF_LEN = 9
+PREFIX_LEN = 4
 SIZE = 4096
 PSH_PROMPT = 'psh > '
 FAKEOK = """HTTP/1.1 200 OK\r
@@ -60,20 +60,19 @@ class PoetSocket():
 
         chunks = []
         bytes_recvd = 0
-        prefix_len = 4
 
         # In case we don't get all 4 bytes of the prefix the first recv(),
         # this ensures we'll eventually get it intact
-        while bytes_recvd < prefix_len:
-            chunk = self.s.recv(prefix_len)
+        while bytes_recvd < PREFIX_LEN:
+            chunk = self.s.recv(PREFIX_LEN)
             if not chunk:
                 raise socket.error('socket connection broken')
             chunks.append(chunk)
             bytes_recvd += len(chunk)
 
         initial = ''.join(chunks)
-        msglen, initial = (struct.unpack('>I', initial[:prefix_len])[0],
-                           initial[prefix_len:])
+        msglen, initial = (struct.unpack('>I', initial[:PREFIX_LEN])[0],
+                           initial[PREFIX_LEN:])
         del chunks[:]
         bytes_recvd = len(initial)
         chunks.append(initial)
