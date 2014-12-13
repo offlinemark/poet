@@ -304,11 +304,12 @@ def get_args():
     """ Parse arguments and return dictionary. """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('host', metavar='IP', type=str)
+    parser.add_argument('host', metavar='IP', type=str, help='server')
     parser.add_argument('interval', metavar='INTERVAL', type=int, help='(s)')
     parser.add_argument('-p', '--port')
     parser.add_argument('-v', '--verbose', action="store_true")
-    parser.add_argument('-d', '--delete', action="store_true")
+    parser.add_argument('-d', '--delete', action="store_true",
+                        help="delete client upon execution")
     return parser.parse_args()
 
 
