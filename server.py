@@ -198,14 +198,8 @@ class PoetServer(object):
                         self.cmd_help(7)
                 # chint
                 elif base == self.cmds[8]:
-                    if re.search('^chint \d+$', inp):
-                        num = int(inp[6:])
-                        if num < 1 or num > 604800:
-                            print 'psh : Invalid interval time.'
-                        else:
-                            resp = self.conn.exchange(inp)
-                            msg = 'successful' if resp == 'done' else 'error: ' + resp
-                            print 'psh : chint ({}) {}'.format(num, msg)
+                    if re.search('^chint( \d+)?$', inp):
+                        self.chint(inp)
                     else:
                         self.cmd_help(8)
                 else:
@@ -284,7 +278,7 @@ class PoetServer(object):
             print '-h\t\tshow help'
             print '-o\t\twrite results to file in {}/'.format(OUT)
         elif ind == 4:
-            print 'Basic shell on target (forwards stdout of commands executed).'
+            print 'Remote shell on target.'
             print 'usage: shell [-h]'
             print '\noptions:'
             print '-h\t\tshow help'
@@ -307,10 +301,11 @@ class PoetServer(object):
             print '\noptions:'
             print '-h\t\tshow help'
         elif ind == 8:
-            print 'Change interval.'
-            print 'usage: chint [-h] seconds'
-            print '\nChange the client delay interval (seconds).'
-            print 'Minimum allowed value is 1 and maximum is 604800 (1 week).'
+            print 'Print or change client delay interval.'
+            print 'usage: chint [-h] [seconds]'
+            print '\nIf run with no arguments, print the current client delay.'
+            print 'Otherwise, change interval to given argument (seconds).'
+            print 'Minimum allowed value is 1 and maximum is 86400 (1 day).'
             print '\noptions:'
             print '-h\t\tshow help'
 
@@ -373,6 +368,28 @@ class PoetServer(object):
                         pass
                     print
                     continue
+
+    def chint(self, inp):
+        """Chint command handler.
+
+        Args:
+            inp: input string
+        """
+
+        num = inp[6:]
+        if num:
+            # argument was given
+            num = int(num)
+            # 1 second to 1 day
+            if num < 1 or num > 60*60*24:
+                print 'psh : Invalid interval time.'
+            else:
+                resp = self.conn.exchange(inp)
+                msg = 'successful' if resp == 'done' else 'error: ' + resp
+                print 'psh : chint ({}) {}'.format(num, msg)
+        else:
+            # no argument
+            print self.conn.exchange(inp)
 
 
 def get_args():
