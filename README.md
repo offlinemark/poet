@@ -34,10 +34,10 @@ Terminal 2:
 $ sudo ./server.py
 ```
 
-Note: By default, the server needs to be run as root (using `sudo`) because the default
-port it binds to is 443. If that makes you uncomfortable, simply use the
-`-p <PORT>` flag on both the client and server and pick a nice, high number
-for your port (> 1024).
+Note: By default, the server needs to be run as root (using `sudo`) because the
+default port it binds to is 443. If that makes you uncomfortable, simply omit
+`sudo` and use the `-p <PORT>` flag on both the client and server. Pick a
+nice, high number for your port (> 1024).
 
 Of course, using the `-h` flag gives you the full usage.
 
