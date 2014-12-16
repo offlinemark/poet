@@ -34,6 +34,11 @@ Terminal 2:
 $ sudo ./server.py
 ```
 
+Note: By default, the server needs to be run as root (using `sudo`) because the default
+port it binds to is 443. If that makes you uncomfortable, simply use the
+`-p <PORT>` flag on both the client and server and pick a nice, high number
+for your port (> 1024).
+
 Of course, using the `-h` flag gives you the full usage.
 
 ```
@@ -114,3 +119,9 @@ psh > exit
 [+] (2014-09-06 02:08:40.401181) Exiting control shell.
 [-] (2014-09-06 02:08:40.401328) Poet terminated.
 ```
+
+## disclaimer
+
+I am building Poet purely for my own education and learning experience.
+The code is freely available because I think it might be useful to others
+interested in learning about this sort of thing. Use it responsibly.
