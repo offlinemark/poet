@@ -10,6 +10,8 @@ import os.path
 import argparse
 from datetime import datetime
 
+__version__ = '0.3'
+
 OUT = 'archive'
 PREFIX_LEN = 4
 SIZE = 4096
@@ -119,7 +121,7 @@ class PoetServer(object):
         print '[+] ({}) Entering control shell'.format(datetime.now())
         self.conn = PoetSocket(self.s.accept()[0])
         prompt = self.conn.exchange('getprompt')
-        print 'Welcome to psh, the poet shell!'
+        print 'Welcome to psh, the Poet shell!'
         print 'Running `help\' will give you a list of supported commands.'
         while True:
             try:
@@ -397,11 +399,30 @@ def get_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port')
+    parser.add_argument('-V', '--version', action='store_true',
+                        help='prints the Poet version number and exits')
     return parser.parse_args()
+
+
+def print_header():
+    """ Prints big ASCII logo and other info. """
+
+    print """
+                          _
+        ____  ____  ___  / /_
+       / __ \/ __ \/ _ \/ __/
+      / /_/ / /_/ /  __/ /
+     / .___/\____/\___/\__/     v{}
+    /_/
+""".format(__version__)
 
 
 def main():
     args = get_args()
+    if args.version:
+        print 'Poet version {}'.format(__version__)
+        sys.exit(0)
+    print_header()
     PORT = int(args.port) if args.port else 443
     s = PoetSocketServer(PORT)
     print '[+] Poet server started on {}.'.format(PORT)
@@ -420,12 +441,12 @@ def main():
                 break
             except socket.error as e:
                 print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
-                print '[-] ({}) Poet terminated.'.format(datetime.now())
+                print '[-] ({}) Poet server terminated.'.format(datetime.now())
                 sys.exit(0)
         else:
             print '[!] ({}) Connected By: {} -> INVALID!'.format(conntime, addr)
             conn.close()
-    print '[-] ({}) Poet terminated.'.format(datetime.now())
+    print '[-] ({}) Poet server terminated.'.format(datetime.now())
 
 if __name__ == '__main__':
     main()
