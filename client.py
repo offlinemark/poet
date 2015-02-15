@@ -199,10 +199,10 @@ class PoetClient(object):
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(r.read())
             os.fchmod(f.fileno(), stat.S_IRWXU)
-            f.flush()  # ensure that file was actually written to disk
+            # f.flush()  # ensure that file was actually written to disk
             # intentionally not using sp.call() here because we don't
             # necessarily want to wait() on the process
-            sp.Popen(f.name, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
+        sp.Popen(f.name, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
 
     def chint(self, s, inp):
         """Handle server `chint' command.
