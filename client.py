@@ -191,18 +191,13 @@ class PoetClient(object):
         """
 
         r = urllib2.urlopen(inp.split()[1])
-
-        # don't delete the file automatically because otherwise something weird
-        # happens and we might (will) delete the file before it gets loaded
-        # into memory? if we didn't include this, we would need to call wait()
-        # or sp.call() instead later on
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(r.read())
             os.fchmod(f.fileno(), stat.S_IRWXU)
-            f.flush()  # ensure that file was actually written to disk
-            # intentionally not using sp.call() here because we don't
-            # necessarily want to wait() on the process
-            sp.Popen(f.name, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
+        # intentionally not using sp.call() here because we don't
+        # necessarily want to wait() on the process. also, this is outside
+        # the with block to avoid a `Text file busy' error (linux)
+        sp.Popen(f.name, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
 
     def chint(self, s, inp):
         """Handle server `chint' command.
