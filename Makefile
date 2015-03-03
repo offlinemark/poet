@@ -1,43 +1,50 @@
-CLIENT = client.py
-ZIP = $(CLIENT:py=zip)
-COMMON = poetsocket.py
-SRC = $(CLIENT) $(COMMON)
-MAIN = __main__.py
-
-CC = /usr/bin/zip  # lol
-PYTHON = /usr/local/bin/python
-
-IP = 127.0.0.1
-DELAY = 1
-PORT = -p 8081
+LIB = lib/poetsocket.py
+SRC = $(wildcard src/*.py) $(LIB)
+BUILD = build
 
 #
 # build: produces client.zip
 #
 
-default: $(ZIP)
+default: $(BUILD)
 
-$(ZIP): $(SRC)
-	# our main file needs to be named __main__.py when we zip it up
-	ln -s $(CLIENT) $(MAIN)
-	$(CC) $(ZIP) $(MAIN) $(COMMON)
-	rm $(MAIN)
+$(BUILD): $(SRC)
+	@echo Beginning build.
+	@echo
+	mkdir -p build
+	cd src && $(MAKE)
+	@echo
+	@echo Build Succeeded!
 
 clean:
-	rm -rf archive $(ZIP) *.pyc *.zip $(MAIN)
+	rm -rf $(BUILD)
+
+squeaky:
+	$(MAKE) clean
+	rm -rf archive
 
 #
 # testing helpers
 #
 
-cl: $(ZIP)
-	$(PYTHON) $< $(IP) $(DELAY) $(PORT)
+# arguments
+IP = 127.0.0.1
+DELAY = 1
+PORT = -p 8081
 
-clv: $(ZIP)
-	$(PYTHON) $< $(IP) $(DELAY) $(PORT) -v
+PYTHON = python
+CL = client.zip
+SV = server.zip
 
-clvd: $(ZIP)
-	$(PYTHON) $< $(IP) $(DELAY) $(PORT) -v -d
 
-sv:
-	$(PYTHON) server.py $(PORT)
+cl: $(BUILD)
+	$(PYTHON) $</$(CL) $(IP) $(DELAY) $(PORT)
+
+clv: $(BUILD)
+	$(PYTHON) $</$(CL) $(IP) $(DELAY) $(PORT) -v
+
+clvd: $(BUILD)
+	$(PYTHON) $</$(CL) $(IP) $(DELAY) $(PORT) -v -d
+
+sv: $(BUILD)
+	$(PYTHON) $</$(SV) $(PORT)
