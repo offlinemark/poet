@@ -3,18 +3,16 @@
 import re
 import sys
 import zlib
-import base64
 import socket
-import struct
 import os.path
 import argparse
 from datetime import datetime
 
+from poetsocket import *
+
 __version__ = '0.3'
 
 OUT = 'archive'
-PREFIX_LEN = 4
-SIZE = 4096
 PSH_PROMPT = 'psh > '
 FAKEOK = """HTTP/1.1 200 OK\r
 Date: Tue, 19 Mar 2013 22:12:25 GMT\r
@@ -24,67 +22,6 @@ Content-Length: 364\r
 Content-Type: text/plain\r
 \r
 body{background-color:#f0f0f2;margin:0;padding:0;font-family:"Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif}div{width:600px;margin:5em auto;padding:50px;background-color:#fff;border-radius:1em}a:link,a:visited{color:#38488f;text-decoration:none}@media (max-width:700px){body{background-color:#fff}div{width:auto;margin:0 auto;border-radius:0;padding:1em}}"""
-
-
-class PoetSocket():
-    """Socket wrapper for client/server communications.
-
-    Attributes:
-        s: socket instance
-
-    Socket abstraction which uses the convention that the message is prefixed
-    by a big-endian 32 bit value indicating the length of the following base64
-    string.
-    """
-
-    def __init__(self, s):
-        self.s = s
-
-    def exchange(self, msg):
-        self.send(msg)
-        return self.recv()
-
-    def send(self, msg):
-        """Send message over socket."""
-
-        pkg = base64.b64encode(msg)
-        pkg_size = struct.pack('>i', len(pkg))
-        sent = self.s.sendall(pkg_size + pkg)
-        if sent:
-            raise socket.error('socket connection broken')
-
-    def recv(self):
-        """Receive message from socket.
-
-        Returns:
-            The message sent from client.
-        """
-
-        chunks = []
-        bytes_recvd = 0
-
-        # In case we don't get all 4 bytes of the prefix the first recv(),
-        # this ensures we'll eventually get it intact
-        while bytes_recvd < PREFIX_LEN:
-            chunk = self.s.recv(PREFIX_LEN)
-            if not chunk:
-                raise socket.error('socket connection broken')
-            chunks.append(chunk)
-            bytes_recvd += len(chunk)
-
-        initial = ''.join(chunks)
-        msglen, initial = (struct.unpack('>I', initial[:PREFIX_LEN])[0],
-                           initial[PREFIX_LEN:])
-        del chunks[:]
-        bytes_recvd = len(initial)
-        chunks.append(initial)
-        while bytes_recvd < msglen:
-            chunk = self.s.recv(min((msglen - bytes_recvd, SIZE)))
-            if not chunk:
-                raise socket.error('socket connection broken')
-            chunks.append(chunk)
-            bytes_recvd += len(chunk)
-        return base64.b64decode(''.join(chunks))
 
 
 class PoetSocketServer(PoetSocket):
