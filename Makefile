@@ -1,6 +1,10 @@
-SRC = __main__.py poetsocket.py
-OUT = client.zip
-CC = /usr/bin/zip
+CLIENT = client.py
+ZIP = $(CLIENT:py=zip)
+COMMON = poetsocket.py
+SRC = $(CLIENT) $(COMMON)
+MAIN = __main__.py
+
+CC = /usr/bin/zip  # lol
 PYTHON = /usr/local/bin/python
 
 IP = 127.0.0.1
@@ -8,29 +12,32 @@ DELAY = 1
 PORT = -p 8081
 
 #
-# build
+# build: produces client.zip
 #
 
-default: $(OUT)
+default: $(ZIP)
 
-$(OUT): $(SRC)
-	$(CC) $(OUT) $(SRC)
+$(ZIP): $(SRC)
+	# our main file needs to be named __main__.py when we zip it up
+	ln -s $(CLIENT) $(MAIN)
+	$(CC) $(ZIP) $(MAIN) $(COMMON)
+	rm $(MAIN)
 
 clean:
-	rm -rf archive $(OUT) *.pyc
+	rm -rf archive $(ZIP) *.pyc *.zip $(MAIN)
 
 #
 # testing helpers
 #
 
-cl: $(OUT)
+cl: $(ZIP)
 	$(PYTHON) $< $(IP) $(DELAY) $(PORT)
 
-clv: $(OUT)
-	$(PYTHON) $< $(IP) $(DELAY) $(PORT) -v 
+clv: $(ZIP)
+	$(PYTHON) $< $(IP) $(DELAY) $(PORT) -v
 
-clvd: $(OUT)
+clvd: $(ZIP)
 	$(PYTHON) $< $(IP) $(DELAY) $(PORT) -v -d
 
 sv:
-	./server.py $(PORT)
+	$(PYTHON) server.py $(PORT)
