@@ -9,12 +9,13 @@ CC = zip
 default: $(SRC:.py=.zip)
 
 %.zip: %.py $(LIB)
-	# the file with main() needs to be named __main__.py for this to work
+
+# the file with main() needs to be named __main__.py for this to work
 	ln -s $< $(MAIN)
 
-	# zip everything up. -j: ignore paths, only use file names. -r : zip file
-	# destination
+# zip everything up. -j: ignore paths, only use file names. -r : zip file
+# destination
 	$(CC) -j -r $(BUILD)/$@ $(MAIN) $(LIB)
 
-	# clean up, we don't need it anymore
+# clean up, we don't need it anymore
 	rm $(MAIN)

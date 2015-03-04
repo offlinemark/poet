@@ -1,9 +1,8 @@
-LIB = lib/poetsocket.py
-SRC = $(wildcard src/*.py) $(LIB)
+SRC = $(wildcard **/*.py)
 BUILD = build
 
 #
-# build: produces client.zip
+# build: produces client.zip and server.zip
 #
 
 default: $(BUILD)
@@ -37,14 +36,19 @@ CL = client.zip
 SV = server.zip
 
 
+# run client at localhost:8081, delay 1s
 cl: $(BUILD)
 	$(PYTHON) $</$(CL) $(IP) $(DELAY) $(PORT)
 
+# run client at localhost:8081, delay 1s, verbosely
 clv: $(BUILD)
 	$(PYTHON) $</$(CL) $(IP) $(DELAY) $(PORT) -v
 
+# run client at localhost:8081, delay 1s, verbosely, and delete on disk
+# after launch
 clvd: $(BUILD)
 	$(PYTHON) $</$(CL) $(IP) $(DELAY) $(PORT) -v -d
 
+# run server on localhost:8081
 sv: $(BUILD)
 	$(PYTHON) $</$(SV) $(PORT)
