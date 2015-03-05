@@ -19,3 +19,6 @@ default: $(SRC:.py=.zip)
 
 # clean up, we don't need it anymore
 	rm $(MAIN)
+
+clean:
+	rm -rf __main__.py

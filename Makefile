@@ -17,6 +17,7 @@ $(BUILD): $(SRC)
 
 clean:
 	rm -rf $(BUILD)
+	cd src && $(MAKE) clean
 
 squeaky:
 	$(MAKE) clean
