@@ -15,7 +15,7 @@ default: $(SRC:.py=.zip)
 
 # zip everything up. -j: ignore paths, only use file names. -r : zip file
 # destination
-	$(CC) -j -r $(BUILD)/$@ $(MAIN) $(LIB)
+	$(CC) -j -r $(BUILD)/poet-$@ $(MAIN) $(LIB)
 
 # clean up, we don't need it anymore
 	rm $(MAIN)

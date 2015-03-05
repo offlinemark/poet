@@ -32,8 +32,8 @@ DELAY = 1
 PORT = -p 8081
 
 PYTHON = python
-CL = client.zip
-SV = server.zip
+CL = poet-client.zip
+SV = poet-server.zip
 
 
 # run client at localhost:8081, delay 1s
