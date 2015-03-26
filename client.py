@@ -171,7 +171,7 @@ class PoetClient(object):
         """
 
         out = ''
-        cmds = self.parse_exec_cmds(inp)
+        cmds = self.parse_exec_cmds(inp[5:])
         for cmd in cmds:
             cmd_out = self.cmd_exec(cmd)
             out += '='*20 + '\n\n$ {}\n{}\n'.format(cmd, cmd_out)
@@ -289,16 +289,15 @@ class PoetClient(object):
             List of commands to execute.
         """
 
-        cmds = []
-        inp = inp[5:]
-        num_cmds = inp.count('"') / 2
-        for i in range(num_cmds):
-            first = inp.find('"')
-            second = inp.find('"', first+1)
-            cmd = inp[first+1:second]
-            cmds.append(cmd)
-            inp = inp[second+2:]
-        return cmds
+        if inp.count('"') == 2:
+            return [inp[1:-1]]
+        else:
+            # server side regex guarantees that these quotes will be in the
+            # correct place -- the space between two commands
+            third_quote = inp.find('" "') + 2
+            first_cmd = inp[:third_quote-1]
+            rest = inp[third_quote:]
+            return [first_cmd[1:-1]] + self.parse_exec_cmds(rest)
 
 
 def get_args():
