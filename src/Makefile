@@ -1,24 +1,24 @@
 LIB = $(wildcard ../lib/*.py)
 SRC = $(wildcard *.py)
-MAIN = __main__.py
+MAIN = __main__.pyc
 BUILD = ../build
 
 # lol
-CC = zip
+ZIP = zip
+PYCC = python2.7 -m py_compile
 
 default: $(SRC:.py=.zip)
 
-%.zip: %.py $(LIB)
-
+%.zip: %.pyc $(LIB:.py=.pyc)
 # the file with main() needs to be named __main__.py for this to work
 	ln -s $< $(MAIN)
 
 # zip everything up. -j: ignore paths, only use file names. -r : zip file
 # destination
-	$(CC) -j -r $(BUILD)/poet-$@ $(MAIN) $(LIB)
+	$(ZIP) -j -r $(BUILD)/poet-$@ $(MAIN) $(LIB:.py=.pyc)
 
 # clean up, we don't need it anymore
 	rm $(MAIN)
 
-clean:
-	rm -rf __main__.py
+%.pyc: %.py
+	$(PYCC) $<
