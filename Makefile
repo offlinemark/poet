@@ -31,7 +31,7 @@ IP = 127.0.0.1
 DELAY = 1
 PORT = -p 8081
 
-PYTHON = python
+PYTHON = python2.7
 CL = poet-client.zip
 SV = poet-server.zip
 
