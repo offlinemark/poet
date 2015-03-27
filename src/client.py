@@ -250,7 +250,8 @@ def get_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('host', metavar='IP', type=str, help='server')
-    parser.add_argument('interval', metavar='INTERVAL', type=int, help='(s)')
+    parser.add_argument('interval', metavar='INTERVAL', type=int, help='(s)',
+                        nargs='?', default=600)
     parser.add_argument('-p', '--port')
     parser.add_argument('-v', '--verbose', action="store_true")
     parser.add_argument('-d', '--delete', action="store_true",
