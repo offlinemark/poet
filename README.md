@@ -35,7 +35,7 @@ $ make
 This will create a `build/` directory which contains `poet-client.zip`
 and `poet-server.zip`.
 
-Wondering why Poet is distributed as zip file rather than regular python
+Wondering why Poet is distributed as zip files rather than regular python
 scripts?  This is because of shared code between the client and server and the
 requirement that the client be a single file. Rather than manually keeping
 copies of the shared code in sync between files, packaging the main and shared
