@@ -1,54 +1,38 @@
 SRC = $(wildcard **/*.py)
-BUILD = build
+OUT = bin
 
 #
-# build: produces client.zip and server.zip
+# default: produces poet-client.zip and poet-server.zip
 #
 
-default: $(BUILD)
+default: $(OUT)
 
-$(BUILD): $(SRC)
+# a debug build just brings the client, server, and library files all
+# together into the same directory because the regular build disables
+# debugging source context
+dbg:
+	@echo Copying source files into current directory.
+	@echo
+	for file in $(SRC) ; do \
+		cp $$file . ; \
+	done
+	@echo
+	@echo Done.
+
+$(OUT): $(SRC)
 	@echo Beginning build.
 	@echo
-	mkdir -p build
+	mkdir -p $(OUT)
 	cd src && $(MAKE)
 	@echo
 	@echo Build Succeeded!
 
 clean:
-	rm -rf $(BUILD)
+	rm -rf $(OUT) *.py*
 
 squeaky:
 	$(MAKE) clean
 	rm -rf archive
 
-#
 # testing helpers
-#
-
-# arguments
-IP = 127.0.0.1
-DELAY = 1
-PORT = -p 8081
-
-PYTHON = python2.7
-CL = poet-client.zip
-SV = poet-server.zip
-
-
-# run client at localhost:8081, delay 1s
-cl: $(BUILD)
-	$(PYTHON) $</$(CL) $(IP) $(DELAY) $(PORT)
-
-# run client at localhost:8081, delay 1s, verbosely
-clv: $(BUILD)
-	$(PYTHON) $</$(CL) $(IP) $(DELAY) $(PORT) -v
-
-# run client at localhost:8081, delay 1s, verbosely, and delete on disk
-# after launch
-clvd: $(BUILD)
-	$(PYTHON) $</$(CL) $(IP) $(DELAY) $(PORT) -v -d
-
-# run server on localhost:8081
-sv: $(BUILD)
-	$(PYTHON) $</$(SV) $(PORT)
+include Testing.mk
