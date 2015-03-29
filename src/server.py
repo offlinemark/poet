@@ -10,7 +10,7 @@ from datetime import datetime
 
 from poetsocket import *
 
-__version__ = '0.4'
+__version__ = '0.4.1'
 
 OUT = 'archive'
 PSH_PROMPT = 'psh > '
