@@ -366,7 +366,12 @@ def main():
         sys.exit(0)
     print_header()
     PORT = int(args.port) if args.port else 443
-    s = PoetSocketServer(PORT)
+    try:
+        s = PoetSocketServer(PORT)
+    except socket.error as e:
+        if e.errno == 13:
+            print '[!] ({}) You need to be root!'.format(datetime.now())
+            die()
     print '[+] Poet server started on {}.'.format(PORT)
     while True:
         try:
