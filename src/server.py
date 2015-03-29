@@ -290,23 +290,28 @@ class PoetServer(object):
                 continue
             elif inp == 'exit':
                 break
-            else:
-                self.conn.send('shell {}'.format(inp))
-                try:
-                    while True:
-                        rec = self.conn.recv()
-                        if rec == 'shelldone':
-                            break
-                        else:
-                            print rec,
-                except KeyboardInterrupt:
-                    self.conn.send('shellterm')
-                    # flush lingering socket buffer ('shelldone' and any
-                    # excess data) and sync client/server
-                    while self.conn.recv() != 'shelldone':
-                        pass
-                    print
+            elif inp in self.cmds:
+                print """[!] WARNING: You've entered a psh command into the real remote shell on the
+    target. Continue? (y/n)""",
+                if raw_input().lower()[0] != 'y':
                     continue
+
+            self.conn.send('shell {}'.format(inp))
+            try:
+                while True:
+                    rec = self.conn.recv()
+                    if rec == 'shelldone':
+                        break
+                    else:
+                        print rec,
+            except KeyboardInterrupt:
+                self.conn.send('shellterm')
+                # flush lingering socket buffer ('shelldone' and any
+                # excess data) and sync client/server
+                while self.conn.recv() != 'shelldone':
+                    pass
+                print
+                continue
 
     def chint(self, inp):
         """Chint command handler.
