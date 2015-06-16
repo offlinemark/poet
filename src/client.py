@@ -6,6 +6,7 @@ import sys
 import stat
 import time
 import zlib
+import base64
 import select
 import socket
 import os.path
@@ -16,6 +17,7 @@ import logging as log
 import subprocess as sp
 from datetime import datetime
 
+import config as CFG
 from poetsocket import *
 
 UA = 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'
@@ -241,8 +243,9 @@ def get_args():
     """ Parse arguments and return dictionary. """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('host', metavar='IP', type=str, help='server')
-    parser.add_argument('interval', metavar='INTERVAL', type=int, help='(s)',
+    parser.add_argument('host', metavar='IP', type=str, help='Poet Server')
+    parser.add_argument('interval', metavar='INTERVAL', type=int,
+                        help='Beacon Interval, in seconds. Default: 600',
                         nargs='?', default=600)
     parser.add_argument('-p', '--port')
     parser.add_argument('-v', '--verbose', action="store_true")
@@ -267,7 +270,11 @@ def is_active(host, port):
 
     try:
         url = 'http://{}:{}/style.css'.format(host, port)
-        req = urllib2.Request(url, headers={'User-Agent': UA})
+        headers = {
+            'User-Agent': UA,
+            'Cookie': 'c={};'.format(base64.b64encode(CFG.AUTH))
+        }
+        req = urllib2.Request(url, headers=headers)
         f = urllib2.urlopen(req)
         if f.code == 200:
             return True

