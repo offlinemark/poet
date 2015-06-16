@@ -13,7 +13,7 @@ from datetime import datetime
 import config as CFG
 from poetsocket import *
 
-__version__ = '0.4.1'
+__version__ = '0.4.2'
 
 OUT = 'archive'
 PSH_PROMPT = 'psh > '
