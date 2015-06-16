@@ -1,5 +1,6 @@
 #!/usr/bin/python2.7
 
+import os
 import re
 import sys
 import zlib
@@ -361,7 +362,9 @@ def print_header():
 """.format(__version__)
 
 
-def die():
+def die(msg=None):
+    if msg:
+        print '[!] ({}) {}'.format(datetime.now(), msg)
     print '[-] ({}) Poet server terminated.'.format(datetime.now())
     sys.exit(0)
 
@@ -377,8 +380,6 @@ def authenticate(ping):
         None: client authenticated successfully
         str: the reason authentication failed
     """
-       
-
 
     if ping.startswith('GET /style.css HTTP/1.1'):
         if 'Cookie: c={};'.format(base64.b64encode(CFG.AUTH)) in ping:
@@ -387,6 +388,25 @@ def authenticate(ping):
             return 'AUTH TOKEN'
     else:
         return 'REQUEST'
+
+
+def drop_privs():
+    new_uid = int(os.getenv('SUDO_UID'))
+    new_gid = int(os.getenv('SUDO_GID'))
+
+    # drop group before user, because otherwise you're not privileged enough
+    # to drop group
+    os.setgroups([])
+    os.setregid(new_gid, new_gid)
+    os.setreuid(new_uid, new_uid)
+
+    # check to make sure we can't re-escalate
+    try:
+        os.seteuid(0)
+    except OSError:
+        return
+
+    die('Failed to drop privileges!')
 
 
 def main():
@@ -400,8 +420,9 @@ def main():
         s = PoetSocketServer(PORT)
     except socket.error as e:
         if e.errno == 13:
-            print '[!] ({}) You need to be root!'.format(datetime.now())
-            die()
+            die('You need to be root!')
+    if os.geteuid() == 0:
+        drop_privs()
     print '[+] Poet server started on {}.'.format(PORT)
     while True:
         try:
@@ -411,8 +432,7 @@ def main():
         conntime = datetime.now()
         ping = conn.recv(SIZE)
         if not ping:
-            print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
-            die()
+            die('Socket error: {}'.format(e.message))
         auth_err = authenticate(ping)
         if auth_err:
             print '[!] ({}) Connected By: {} -> INVALID! ({})'.format(conntime, addr, auth_err)
@@ -425,8 +445,7 @@ def main():
                 PoetServer(s).psh()
                 break
             except socket.error as e:
-                print '[!] ({}) Socket error: {}'.format(datetime.now(), e.message)
-                die()
+                die('Socket error: {}'.format(e.message))
     die()
 
 if __name__ == '__main__':
