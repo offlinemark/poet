@@ -246,7 +246,8 @@ def get_args():
                         help='Beacon Interval, in seconds. Default: 600',
                         nargs='?', default=600)
     parser.add_argument('-p', '--port')
-    parser.add_argument('-v', '--verbose', action="store_true")
+    parser.add_argument('--debug', action="store_true",
+                        help="show debug messages. only meaningful with --no-daemon")
     parser.add_argument('--no-daemon', action='store_true',
                         help="don't daemonize")
     parser.add_argument('--no-selfdestruct', action='store_true',
@@ -318,7 +319,7 @@ def main():
     if not args.no_daemon:
         daemonize()
 
-    if args.verbose:
+    if args.debug:
         log.basicConfig(format='%(message)s', level=log.INFO)
     else:
         log.basicConfig(format='%(message)s')
