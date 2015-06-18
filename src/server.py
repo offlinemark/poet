@@ -281,7 +281,7 @@ class PoetServer(object):
 
         while True:
             try:
-                inp = raw_input(PSH_PROMPT + prompt)
+                inp = raw_input(PSH_PROMPT + prompt).strip()
             except KeyboardInterrupt:  # Ctrl-C -> new prompt
                 print
                 continue
