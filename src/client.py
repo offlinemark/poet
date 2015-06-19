@@ -293,24 +293,35 @@ def selfdestruct():
 
 
 def daemonize():
-    """Daemonize client. Methodology taken from
-    http://www-theorie.physik.unizh.ch/~dpotter/howto/daemonize
+    """Daemonize client.
+    http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
     """
 
     # already a daemon?
     if os.getppid() == 1:
         return
 
-    pid = os.fork()
-    if pid != 0:
-        sys.exit(0)
-    os.umask(0022)
-    os.chdir('/')
+    # break out of shell
+    try:
+        pid = os.fork()
+        if pid > 0:
+            sys.exit(0)
+    except OSError:
+        # silently faily
+        sys.exit(1)
 
-    devnull = open('/dev/null')
-    sys.stdout = devnull
-    sys.stdin = devnull
-    sys.stderr = devnull
+    # standard decoupling
+    os.setsid()     # detach from terminal
+    os.umask(0022)  # not really necessary, client isn't creating files
+    os.chdir('/')   # so we don't block a fs from unmounting
+
+    # denature std fd's
+    si = file('/dev/null', 'r')
+    so = file('/dev/null', 'a+')
+    se = file('/dev/null', 'a+', 0)
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
 
 
 def main():
