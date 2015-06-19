@@ -95,7 +95,7 @@ class PoetClient(object):
                     s.send('Unrecognized')
             except socket.error as e:
                 if e.message == 'too much data!':
-                    s.send('psh : ' + e.message)
+                    s.send('posh : ' + e.message)
                 else:
                     raise
         s.close()
@@ -160,7 +160,7 @@ class PoetClient(object):
 
 
     def shell(self, inp, s):
-        """Psh `shell' command client-side.
+        """Posh `shell' command client-side.
 
         Create a subprocess for command and line buffer command output to
         server while listening for signals from server.

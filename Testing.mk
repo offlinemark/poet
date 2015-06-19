@@ -23,20 +23,11 @@ BIN_SV = $(OUT)/poet-$(basename $(SV))
 
 # run client at localhost:8081, delay 1s
 cl: dbg
-	$(PYTHON) $(CL) $(IP) $(DELAY) $(PORT)
+	$(PYTHON) $(CL) $(IP) $(DELAY) $(PORT) --no-selfdestruct
 
 # run client at localhost:8081, delay 1s, verbosely
 clv: dbg
-	$(PYTHON) $(CL) $(IP) $(DELAY) $(PORT) -v
-
-# run client at localhost:8081, delay 1s, verbosely, and delete on disk
-# after launch
-clvd: dbg
-	@echo
-	@echo "You don't want to do that."
-	@echo "The client's selfdestruct functionality is tailored to it being in a \n\
-zip file and things will go wrong if you try to run that from a standalone \n\
-script (it'll try to delete the containing directory)."
+	$(PYTHON) $(CL) $(IP) $(DELAY) $(PORT) --debug --no-selfdestruct --no-daemon
 
 # run server on localhost:8081
 sv: dbg
@@ -48,16 +39,11 @@ sv: dbg
 
 # run client at localhost:8081, delay 1s
 bcl: default
-	$(PYTHON) $(BIN_CL) $(IP) $(DELAY) $(PORT)
+	$(PYTHON) $(BIN_CL) $(IP) $(DELAY) $(PORT) --no-selfdestruct
 
 # run client at localhost:8081, delay 1s, verbosely
 bclv: default
-	$(PYTHON) $(BIN_CL) $(IP) $(DELAY) $(PORT) -v
-
-# run client at localhost:8081, delay 1s, verbosely, and delete on disk
-# after launch
-bclvd: default
-	$(PYTHON) $(BIN_CL) $(IP) $(DELAY) $(PORT) -v -d
+	$(PYTHON) $(BIN_CL) $(IP) $(DELAY) $(PORT) --debug --no-selfdestruct --no-daemon
 
 # run server on localhost:8081
 bsv: default

