@@ -391,8 +391,17 @@ def authenticate(ping):
 
 
 def drop_privs():
-    new_uid = int(os.getenv('SUDO_UID'))
-    new_gid = int(os.getenv('SUDO_GID'))
+    try:
+        new_uid = int(os.getenv('SUDO_UID'))
+        new_gid = int(os.getenv('SUDO_GID'))
+    except TypeError:
+        # they were running directly from a root user and didn't have
+        # sudo env variables
+        print """[!] WARNING: Couldn't drop privileges! To avoid this error, run from a non-root user.
+    You may also use sudo, from a non-root user. Continue? (y/n)""",
+        if raw_input().lower()[0] == 'y':
+            return
+        die()
 
     # drop group before user, because otherwise you're not privileged enough
     # to drop group
@@ -404,9 +413,9 @@ def drop_privs():
     try:
         os.seteuid(0)
     except OSError:
-        return
-
-    die('Failed to drop privileges!')
+        print '[!] WARNING: Failed to drop privileges! Continue? (y/n)',
+        if raw_input().lower()[0] != 'y':
+            die()
 
 
 def main():
