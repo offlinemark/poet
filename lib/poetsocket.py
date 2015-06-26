@@ -49,7 +49,7 @@ class PoetSocket(object):
         # In case we don't get all 4 bytes of the prefix the first recv(),
         # this ensures we'll eventually get it intact
         while bytes_recvd < PREFIX_LEN:
-            chunk = self.s.recv(PREFIX_LEN)
+            chunk = self.s.recv(min(PREFIX_LEN - bytes_recvd, PREFIX_LEN))
             if not chunk:
                 raise socket.error('socket connection broken')
             chunks.append(chunk)
