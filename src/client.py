@@ -267,7 +267,7 @@ def get_args():
                         nargs='?', default=600)
     parser.add_argument('-p', '--port')
     parser.add_argument('--debug', action="store_true",
-                        help="show debug messages. only meaningful with --no-daemon")
+                        help="show debug messages. implies --no-daemon")
     parser.add_argument('--no-daemon', action='store_true',
                         help="don't daemonize")
     parser.add_argument('--no-selfdestruct', action='store_true',
@@ -347,7 +347,7 @@ def daemonize():
 def main():
     global args
     args = get_args()
-    if not args.no_daemon:
+    if not args.no_daemon and not args.debug:
         daemonize()
 
     if args.debug:
