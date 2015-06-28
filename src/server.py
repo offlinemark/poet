@@ -359,7 +359,7 @@ def get_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port')
-    parser.add_argument('-V', '--version', action='store_true',
+    parser.add_argument('-v', '--version', action='store_true',
                         help='prints the Poet version number and exits')
     return parser.parse_args()
 
