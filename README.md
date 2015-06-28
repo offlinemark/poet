@@ -50,7 +50,7 @@ Terminal 1:
 $ ./poet-client 127.0.0.1 1 --debug --no-selfdestruct
 ```
 
-> By default, the poet client daemonizes and deletes itself from disk, so
+> By default, the Poet client daemonizes and deletes itself from disk, so
 > that behavior is suppressed using the `--debug` and `--no-selfdestruct`
 > flags.
 
@@ -127,7 +127,7 @@ Documented concerns:
 
 ## demo
 
-This is just a small sample of what poet can do.
+This is just a small sample of what Poet can do.
 
 The scenario is, an attacker has gotten access to the victim's machine and
 downloaded and executed the client.  She does not have
@@ -143,6 +143,9 @@ Victim's Machine (5.4.3.2):
 ```
 $ ./poet-client 1.2.3.4 10  # poet-client daemonizes, so there's nothing to see
 ```
+
+> Warning: After running this command, you'll need to either run `selfdestruct`
+> from the server, or kill the `poet-client` process to stop the client.
 
 Attacker's Machine (1.2.3.4):
 
