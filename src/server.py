@@ -451,7 +451,7 @@ def main():
             die('You need to be root!')
     if os.geteuid() == 0:
         drop_privs()
-    debug.info('Poet server started (port {})'.format(PORT))
+    debug.info('Poet server started on port: {}'.format(PORT))
     while True:
         try:
             conn, addr = s.accept()
