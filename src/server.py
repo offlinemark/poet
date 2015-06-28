@@ -404,6 +404,9 @@ def drop_privs():
             return
         die()
 
+    debug.info('Dropping privileges to uid: {}, gid: {}'.format(new_uid,
+                                                                new_gid))
+
     # drop group before user, because otherwise you're not privileged enough
     # to drop group
     os.setgroups([])
@@ -413,10 +416,11 @@ def drop_privs():
     # check to make sure we can't re-escalate
     try:
         os.seteuid(0)
-    except OSError:
         print '[!] WARNING: Failed to drop privileges! Continue? (y/n)',
         if raw_input().lower()[0] != 'y':
             die()
+    except OSError:
+        return
 
 
 def main():
@@ -433,7 +437,7 @@ def main():
             die('You need to be root!')
     if os.geteuid() == 0:
         drop_privs()
-    debug.info('Poet server started on {}'.format(PORT))
+    debug.info('Poet server started (port {})'.format(PORT))
     while True:
         try:
             conn, addr = s.accept()
