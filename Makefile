@@ -2,7 +2,7 @@ SRC = $(wildcard **/*.py)
 OUT = bin
 
 #
-# default: produces poet-client.zip and poet-server.zip
+# default: produces output client and server executables in bin/
 #
 
 default: $(OUT)

