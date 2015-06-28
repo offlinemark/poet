@@ -27,7 +27,7 @@ cl: dbg
 
 # run client at localhost:8081, delay 1s, verbosely
 clv: dbg
-	$(PYTHON) $(CL) $(IP) $(DELAY) $(PORT) --debug --no-selfdestruct --no-daemon
+	$(PYTHON) $(CL) $(IP) $(DELAY) $(PORT) --debug --no-selfdestruct
 
 # run server on localhost:8081
 sv: dbg
@@ -43,7 +43,7 @@ bcl: default
 
 # run client at localhost:8081, delay 1s, verbosely
 bclv: default
-	$(PYTHON) $(BIN_CL) $(IP) $(DELAY) $(PORT) --debug --no-selfdestruct --no-daemon
+	$(PYTHON) $(BIN_CL) $(IP) $(DELAY) $(PORT) --debug --no-selfdestruct
 
 # run server on localhost:8081
 bsv: default

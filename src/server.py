@@ -10,6 +10,7 @@ import os.path
 import argparse
 from datetime import datetime
 
+import debug
 import config as CFG
 from poetsocket import *
 
@@ -58,7 +59,7 @@ class PoetServer(object):
     def start(self):
         """Poet server control shell."""
 
-        print '[+] ({}) Entering control shell'.format(datetime.now())
+        debug.info('Entering control shell')
         self.conn = PoetSocket(self.s.accept()[0])
         prompt = self.conn.exchange('getprompt')
         print 'Welcome to posh, the Poet Shell!'
@@ -122,7 +123,7 @@ class PoetServer(object):
                         if raw_input().lower()[0] == 'y':
                             resp = self.conn.exchange('selfdestruct')
                             if resp == 'boom':
-                                print '[+] ({}) Exiting control shell.'.format(datetime.now())
+                                debug.info('Exiting control shell')
                                 return
                             else:
                                 print 'posh : Self destruct error: {}'.format(resp)
@@ -153,7 +154,7 @@ class PoetServer(object):
                 print
                 break
         self.conn.send('fin')
-        print '[+] ({}) Exiting control shell.'.format(datetime.now())
+        debug.info('Exiting control shell')
 
     def generic(self, req, write_flag=False, write_file=None):
         """Abstraction layer for exchanging with client and writing to file.
@@ -364,8 +365,8 @@ def print_header():
 
 def die(msg=None):
     if msg:
-        print '[!] ({}) {}'.format(datetime.now(), msg)
-    print '[-] ({}) Poet server terminated.'.format(datetime.now())
+        debug.err(msg)
+    debug.err('Poet server terminated')
     sys.exit(0)
 
 
@@ -432,13 +433,13 @@ def main():
             die('You need to be root!')
     if os.geteuid() == 0:
         drop_privs()
-    print '[+] Poet server started on {}.'.format(PORT)
+    debug.info('Poet server started on {}'.format(PORT))
     while True:
         try:
             conn, addr = s.accept()
         except KeyboardInterrupt:
             die()
-        conntime = datetime.now()
+        conntime = datetime.now().strftime(debug.DATE_FMT)
         ping = conn.recv(SIZE)
         if not ping:
             die('Socket error: {}'.format(e.message))
