@@ -1,6 +1,6 @@
 SRC = $(wildcard *.py)
-LIB = $(wildcard ../lib/*.py)
-LIB := $(subst py,pyo,$(LIB))
+COMMON = $(wildcard ../common/*.py)
+COMMON := $(subst py,pyo,$(COMMON))
 
 MAIN = __main__.pyo
 OUT = ../bin
@@ -11,13 +11,13 @@ PYCC = python2.7 -OO -m py_compile
 default: $(SRC:.py=.zip)
 
 BIN = $(OUT)/poet-$@
-%.zip: %.pyo $(LIB)
+%.zip: %.pyo $(COMMON)
 # the file with main() needs to be named __main__.py for this to work
 	ln -s $< $(MAIN)
 
 # zip everything up. -j: ignore paths, only use file names. -r : zip file
 # destination
-	$(ZIP) -j -r $(BIN) $(MAIN) $(LIB)
+	$(ZIP) -j -r $(BIN) $(MAIN) $(COMMON)
 
 # clean up, we don't need it anymore
 	rm $(MAIN)
