@@ -14,7 +14,7 @@ import debug
 import config as CFG
 from poetsocket import *
 
-__version__ = '0.4.2'
+__version__ = '0.4.3'
 
 OUT = 'archive'
 POSH_PROMPT = 'posh > '
