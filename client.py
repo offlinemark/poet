@@ -395,8 +395,8 @@ def main():
     except KeyboardInterrupt:
         print
         debug.err('Poet terminated')
-    except socket.error as e:
-        debug.warn('Socket error: {}'.format(e.message))
+    except Exception as e:
+        debug.warn('Fatal error: {}'.format(e.message))
         debug.err('Poet terminated')
         sys.exit(0)
 
