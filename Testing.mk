@@ -11,15 +11,10 @@ DELAY = 1
 PORT = -p 8081
 PYTHON = python2.7
 
-CL = client.py
-SV = server.py
-BIN_CL = $(OUT)/poet-$(basename $(CL))
-BIN_SV = $(OUT)/poet-$(basename $(SV))
+CL = common/client.py
+SV = common/server.py
 
-#
-# shortcuts for running debug build scripts that are in the project root
-# directory
-#
+# debug mode helpers
 
 # run client at localhost:8081, delay 1s
 cl: dbg
@@ -32,19 +27,3 @@ clv: dbg
 # run server on localhost:8081
 sv: dbg
 	$(PYTHON) $(SV) $(PORT)
-
-#
-# shortcuts for running the real build in bin/
-#
-
-# run client at localhost:8081, delay 1s
-bcl: default
-	$(PYTHON) $(BIN_CL) $(IP) $(DELAY) $(PORT) --no-selfdestruct
-
-# run client at localhost:8081, delay 1s, verbosely
-bclv: default
-	$(PYTHON) $(BIN_CL) $(IP) $(DELAY) $(PORT) --debug --no-selfdestruct
-
-# run server on localhost:8081
-bsv: default
-	$(PYTHON) $(BIN_SV) $(PORT)
