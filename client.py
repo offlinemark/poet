@@ -100,11 +100,10 @@ class PoetClient(object):
                 # elif inp.startswith('chint'):
                 #     self.chint(s, inp)
 
-                for mod in self.mods:
-                    for cmd, func in mod.client.iteritems():
-                        if inp == cmd:
-                            found = True
-                            s.send(func())
+                for cmd, func in module.client_commands.iteritems():
+                    if inp == cmd:
+                        found = True
+                        s.send(func())
 
                 if not found:
                     s.send('Unrecognized')

@@ -4,9 +4,20 @@ from importlib import import_module
 
 INDEX_FILE = 'modindex.txt'
 
+client_commands = {}
+
+
+def client_handler(cmd):
+    """Decorator to be used by modules for declaring client commands.
+    """
+
+    def decorate(func):
+        client_commands[cmd] = func
+    return decorate
+
 
 def load_modules(cmds=[]):
-    """Read the INDEX_FILE and load all modules.
+    """Read the INDEX_FILE and load all modules. Used by client and server.
 
     Args:
         cmds: list reflecting commands shell supports. only used by server to

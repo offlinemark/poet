@@ -1,10 +1,4 @@
-client = {}
-
-
-def client_handler(cmd):
-    def decorate(func):
-        client[cmd] = func
-    return decorate
+import module
 
 
 def server(argv, conn):
@@ -13,6 +7,6 @@ def server(argv, conn):
     print resp
 
 
-@client_handler('example')
+@module.client_handler('example')
 def example():
     return 'example from client'
