@@ -11,7 +11,7 @@ def server(argv, conn):
 @module.server_handler('exam')
 def server(argv, conn):
     print argv
-    resp = conn.exchange('example')
+    resp = conn.exchange('exam')
     print resp
 
 @module.client_handler('example')
