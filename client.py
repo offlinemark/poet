@@ -51,11 +51,7 @@ class PoetClient(object):
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        try:
-            self.mods = module.load_modules()[1]
-        except:
-            # silently fail
-            pass
+        module.load_modules()
 
     def start(self):
         """Core Poet client functionality."""

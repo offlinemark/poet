@@ -35,10 +35,14 @@ def load_modules(cmds=[]):
     for fname in pkg_resources.resource_string(__name__, INDEX_FILE).split():
         if fname.endswith('.py'):
             mod = os.path.splitext(fname)[0]
+
+            # __init__ isn't a command, but we need it for modules to work
+            # correctly
             if mod == '__init__':
                 continue
             elif mod in cmds:
                 raise Exception('duplicate module detected')
+
             mods.append(import_module('modules.' + mod))
             # TODO : validate module structure for required functions
             cmds.append(mod)

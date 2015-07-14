@@ -17,7 +17,7 @@ default: $(OUT)
 dbg:
 	cp client.py common
 	cp server.py common
-	ls -1 common/modules |grep -v pyo |grep -v __init__ > common/modindex.txt
+	ls -1 common/modules |grep -Ev 'py[oc]' |grep -v __init__ > common/modindex.txt-
 
 bin:
 	mkdir -p $@
