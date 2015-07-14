@@ -59,8 +59,7 @@ class PoetServer(object):
         #              'selfdestruct', 'dlexec', 'chint']
         self.builtins = ['exit', 'help']
 
-        # load modules
-        self.cmds, self.mods = module.load_modules(self.builtins)
+        module.load_modules()
 
 
     def start(self):
@@ -151,17 +150,17 @@ class PoetServer(object):
                 if argv == []:
                     continue
                 # exit
-                if argv[0] == self.cmds[0]:
+                if argv[0] == 'exit':
                     break
                 # help
-                elif argv[0] == self.cmds[1]:
+                elif argv[0] == 'help':
                     found = True
-                    print 'Commands:\n  {}'.format('\n  '.join(sorted(self.cmds)))
+                    print 'Commands:\n  {}'.format('\n  '.join(sorted(self.builtins + module.server_commands.keys())))
 
-                for mod in self.mods:
-                    if argv[0] == mod.__name__.split('.')[-1]:
+                for cmd, func in module.server_commands.iteritems():
+                    if argv[0] == cmd:
                         found = True
-                        mod.server(argv, self.conn)
+                        func(argv, self.conn)
 
                 if not found:
                     print 'posh: {}: command not found'.format(argv[0])

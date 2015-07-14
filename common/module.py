@@ -5,6 +5,7 @@ from importlib import import_module
 INDEX_FILE = 'modindex.txt'
 
 client_commands = {}
+server_commands = {}
 
 
 def client_handler(cmd):
@@ -16,15 +17,18 @@ def client_handler(cmd):
     return decorate
 
 
-def load_modules(cmds=[]):
-    """Read the INDEX_FILE and load all modules. Used by client and server.
-
-    Args:
-        cmds: list reflecting commands shell supports. only used by server to
-              update its internal list
+def server_handler(cmd):
+    """Decorator to be used by modules for declaring server commands.
     """
 
-    mods = []
+    def decorate(func):
+        server_commands[cmd] = func
+    return decorate
+
+
+def load_modules():
+    """Read the INDEX_FILE and load all modules. Used by client and server.
+    """
 
     # a text file named INDEX_FILE is created during the build process that
     # lists the names of all the modules in the modules/ directory. this file
@@ -40,10 +44,8 @@ def load_modules(cmds=[]):
             # correctly
             if mod == '__init__':
                 continue
-            elif mod in cmds:
+            elif mod in server_commands.keys():
                 raise Exception('duplicate module detected')
 
-            mods.append(import_module('modules.' + mod))
+            import_module('modules.' + mod)
             # TODO : validate module structure for required functions
-            cmds.append(mod)
-    return cmds, mods
