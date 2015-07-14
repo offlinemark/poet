@@ -30,7 +30,7 @@ bin/poet-client: client.pyo $(COMMON)
 	ls -1 common/modules |grep -v pyo |grep -v __init__ > common/modindex.txt
 
 # zip everything up. -r : zip file destination
-	cd common && $(ZIP) -r ../$@ *.pyo modules/*.pyo
+	cd common && $(ZIP) -r ../$@ *.pyo modindex.txt modules/*.pyo
 
 # get rid of auto-appended .zip extension
 	mv $@.zip $@
