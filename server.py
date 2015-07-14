@@ -60,7 +60,6 @@ class PoetServer(object):
         self.builtins = ['exit', 'help']
 
         # load modules
-        import ipdb; ipdb.set_trace()
         self.cmds, self.mods = module.load_modules(self.builtins)
 
 
@@ -147,7 +146,6 @@ class PoetServer(object):
             try:
                 found = False
                 argv = raw_input(POSH_PROMPT).split()
-                import ipdb; ipdb.set_trace()
 
                 # builtins
                 if argv == []:
@@ -159,7 +157,7 @@ class PoetServer(object):
                 elif argv[0] == self.cmds[1]:
                     found = True
                     print 'Commands:\n  {}'.format('\n  '.join(sorted(self.cmds)))
-                
+
                 for mod in self.mods:
                     if argv[0] == mod.__name__.split('.')[-1]:
                         found = True
@@ -458,6 +456,8 @@ def drop_privs():
 
 
 def main():
+    import importlib
+    import ipdb; ipdb.set_trace()
     args = get_args()
     if args.version:
         print 'Poet version {}'.format(__version__)
@@ -493,6 +493,7 @@ def main():
                 PoetServer(s).start()
                 break
             except Exception as e:
+                print e
                 die('Fatal error: {}'.format(e.message))
     die()
 
