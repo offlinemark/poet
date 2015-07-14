@@ -31,5 +31,4 @@ def load_modules(cmds=[]):
             mods.append(import_module('modules.' + mod))
             # TODO : validate module structure for required functions
             cmds.append(mod)
-            print mod
     return cmds, mods
