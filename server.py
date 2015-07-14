@@ -456,8 +456,6 @@ def drop_privs():
 
 
 def main():
-    import importlib
-    import ipdb; ipdb.set_trace()
     args = get_args()
     if args.version:
         print 'Poet version {}'.format(__version__)
