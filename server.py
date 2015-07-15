@@ -59,7 +59,6 @@ class PoetServer(object):
         #              'selfdestruct', 'dlexec', 'chint']
         self.builtins = ['exit', 'help']
 
-        module.load_modules()
 
 
     def start(self):
@@ -138,7 +137,6 @@ class PoetServer(object):
 
         debug.info('Entering control shell')
         self.conn = PoetSocket(self.s.accept()[0])
-        prompt = self.conn.exchange('getprompt')
         print 'Welcome to posh, the Poet Shell!'
         print 'Running `help\' will give you a list of supported commands.'
         while True:
@@ -160,7 +158,7 @@ class PoetServer(object):
                 for cmd, func in module.server_commands.iteritems():
                     if argv[0] == cmd:
                         found = True
-                        func(argv, self.conn)
+                        func(self, argv)
 
                 if not found:
                     print 'posh: {}: command not found'.format(argv[0])
@@ -469,6 +467,7 @@ def main():
     if os.geteuid() == 0:
         drop_privs()
     debug.info('Poet server started on port: {}'.format(PORT))
+    module.load_modules()
     while True:
         try:
             conn, addr = s.accept()

