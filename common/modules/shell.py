@@ -86,7 +86,6 @@ def client_shell(client, inp):
                 client.s.send('cd: {}\n'.format(e.strerror))
         return
 
-    # import ipdb; ipdb.set_trace()
     # everything else
     proc = sp.Popen(inp, stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
     while True:
@@ -97,15 +96,11 @@ def client_shell(client, inp):
                 if output:
                     client.s.send(output)
                 else:
-                    shelldone(client)
+                    client.s.send('shelldone')
                     return
             elif fd == client.s.s:  # remote signal from server
                 sig = client.s.recv()
                 if sig == 'shellterm':
                     proc.terminate()
-                    shelldone(client)
+                    client.s.send('shelldone')
                     return
-
-
-def shelldone(client):
-    client.s.send('shelldone')
