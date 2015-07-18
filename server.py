@@ -18,7 +18,7 @@ from poetsocket import *
 
 __version__ = '0.4.3'
 
-OUT = 'archive'
+ARCHIVE_DIR = 'archive'
 POSH_PROMPT = 'posh > '
 FAKEOK = """HTTP/1.1 200 OK\r
 Date: Tue, 19 Mar 2013 22:12:25 GMT\r
@@ -152,10 +152,13 @@ class PoetServer(object):
                 for cmd, func in module.server_commands.iteritems():
                     if argv[0] == cmd:
                         found = True
-                        func(self, argv)
+                        try:
+                            func(self, argv)
+                        except Exception as e:
+                            print str(e.args)
 
                 if not found:
-                    print 'posh: {}: command not found'.format(argv[0])
+                    self.info('{}: command not found'.format(argv[0]))
             except KeyboardInterrupt:
                 print
                 continue
@@ -164,6 +167,9 @@ class PoetServer(object):
                 break
         self.conn.send('fin')
         debug.info('Exiting control shell')
+
+    def info(self, msg):
+        print 'posh : {}'.format(msg)
 
     def generic(self, req, write_flag=False, write_file=None):
         """Abstraction layer for exchanging with client and writing to file.
@@ -181,19 +187,18 @@ class PoetServer(object):
         if write_flag:
             self.write(resp, req.split()[0], OUT, write_file)
 
-    def write(self, response, prefix, out_dir, write_file=None):
+    def write(self, response, prefix, write_file=None):
         """Write to server archive.
 
         Args:
             response: data to write
             prefix: directory to write file to (usually named after command
                     executed)
-            out_dir: name of server archive directory
             write_file: optional filename to use for file
         """
 
         ts = datetime.now().strftime('%Y%m%d%M%S')
-        out_ts_dir = '{}/{}'.format(out_dir, ts[:len('yyyymmdd')])
+        out_ts_dir = '{}/{}'.format(ARCHIVE_DIR, ts[:len('yyyymmdd')])
         out_prefix_dir = '{}/{}'.format(out_ts_dir, prefix)
 
         # create filename to write to
@@ -206,8 +211,8 @@ class PoetServer(object):
             outfile = '{}/{}-{}.txt'.format(out_prefix_dir, prefix, ts)
 
         # create directories if they don't exist
-        if not os.path.isdir(out_dir):
-            os.mkdir(out_dir)
+        if not os.path.isdir(ARCHIVE_DIR):
+            os.mkdir(ARCHIVE_DIR)
         if not os.path.isdir(out_ts_dir):
             os.mkdir(out_ts_dir)
         if not os.path.isdir(out_prefix_dir):
@@ -309,11 +314,11 @@ class PoetServer(object):
             num = int(num)
             # 1 second to 1 day
             if num < 1 or num > 60*60*24:
-                print 'posh : Invalid interval time.'
+                self.info('Invalid interval time')
             else:
                 resp = self.conn.exchange(inp)
                 msg = 'successful' if resp == 'done' else 'error: ' + resp
-                print 'posh : chint ({}) {}'.format(num, msg)
+                self.info('chint ({}) {}'.format(num, msg))
         else:
             # no argument
             print self.conn.exchange(inp)
