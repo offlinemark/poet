@@ -6,12 +6,19 @@ import select
 import subprocess as sp
 
 POSH_PROMPT = 'posh > '
+USAGE = """Remote shell on target.
+usage: shell [-h]
+\noptions:
+-h\t\tshow help"""
 
 
 @module.server_handler('shell')
 def server_shell(server, argv):
+    if len(argv) > 1:
+        print USAGE
+        return
+
     prompt = server.conn.exchange('getprompt')
-    # import ipdb; ipdb.set_trace()
     while True:
         try:
             inp = raw_input(POSH_PROMPT + prompt).strip()
