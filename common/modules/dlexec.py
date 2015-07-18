@@ -1,11 +1,11 @@
 import module
 
+import os
+import stat
+import time
 import urllib2
 import tempfile
-import os
 import subprocess as sp
-import time
-import stat
 
 USAGE = """Download and execute.
 usage: dlexec [-h] http://my.pro/gram
@@ -18,7 +18,7 @@ options:
 
 @module.server_handler('dlexec')
 def server(server, argv):
-    if len(argv) < 2:
+    if len(argv) < 2 or argv[1] in ('-h', '--help'):
         print USAGE
         return
     resp = server.conn.exchange(' '.join(argv))
