@@ -7,6 +7,7 @@ import urllib2
 import tempfile
 import subprocess as sp
 
+MODNAME = 'dlexec'
 USAGE = """Download and execute.
 usage: dlexec [-h] http://my.pro/gram
 
@@ -16,7 +17,7 @@ options:
 -h\t\tshow help"""
 
 
-@module.server_handler('dlexec')
+@module.server_handler(MODNAME)
 def server(server, argv):
     if len(argv) < 2 or argv[1] in ('-h', '--help'):
         print USAGE
@@ -26,7 +27,7 @@ def server(server, argv):
     print 'posh : dlexec {}'.format(msg)
 
 
-@module.client_handler('dlexec')
+@module.client_handler(MODNAME)
 def client(client, inp):
     """Download file from internet, save to temp file, execute.
     """
