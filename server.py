@@ -320,7 +320,7 @@ class PoetServer(object):
                 self.cmd_help(8)
                 return
             # 1 second to 1 day
-            if num < 1 or num > 60*60*24:
+            if num < 1:
                 self.info('Invalid interval time')
             else:
                 resp = self.conn.exchange(' '.join(argv))
