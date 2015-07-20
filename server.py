@@ -128,17 +128,28 @@ class PoetServer(object):
                     found = True
                     print 'Commands:\n  {}'.format('\n  '.join(sorted(self.builtins + module.server_commands.keys())))
                 elif argv[0] == 'selfdestruct':
-                    print """[!] WARNING: You are about to permanently remove the client from the target.
-    You will immediately lose access to the target. Continue? (y/n)""",
-                    if raw_input().lower()[0] == 'y':
-                        resp = self.conn.exchange('selfdestruct')
-                        if resp == 'boom':
-                            debug.info('Exiting control shell')
-                            return
-                        else:
-                            self.info('Self destruct error: {}'.format(resp))
+                    found = True
+                    if '-h' in argv or '--help' in argv:
+                        self.cmd_help(6)
                     else:
-                        self.info('Aborting self destruct')
+                        print """[!] WARNING: You are about to permanently remove the client from the target.
+    You will immediately lose access to the target. Continue? (y/n)""",
+                        if raw_input().lower()[0] == 'y':
+                            resp = self.conn.exchange('selfdestruct')
+                            if resp == 'boom':
+                                debug.info('Exiting control shell')
+                                return
+                            else:
+                                self.info('Self destruct error: {}'.format(resp))
+                        else:
+                            self.info('Aborting self destruct')
+                elif argv[0] == 'chint':
+                    found = True
+                    if '-h' in argv:
+                        self.cmd_help(8)
+    # if len(argv) < 2 or argv[1] in ('-h', '--help') or not REGEX.match(' '.join(argv) + ' '):
+                    else:
+                        self.chint(argv)
 
                 # try to find command in registered modules
                 for cmd, func in module.server_commands.iteritems():
@@ -269,7 +280,7 @@ class PoetServer(object):
             print 'usage: chint [-h] [seconds]'
             print '\nIf run with no arguments, print the current client delay.'
             print 'Otherwise, change interval to given argument (seconds).'
-            print 'Minimum allowed value is 1 and maximum is 86400 (1 day).'
+            print 'Minimum allowed value is 1.'
             print '\noptions:'
             print '-h\t\tshow help'
 
@@ -294,27 +305,30 @@ class PoetServer(object):
         tmp = ' '.join(tmp)
         return tmp, write_flag, write_file
 
-    def chint(self, inp):
+    def chint(self, argv):
         """Chint command handler.
 
         Args:
             inp: input string
         """
 
-        num = inp[6:]
-        if num:
+        if len(argv) > 1:
             # argument was given
-            num = int(num)
+            try:
+                num = int(argv[1])
+            except ValueError:
+                self.cmd_help(8)
+                return
             # 1 second to 1 day
             if num < 1 or num > 60*60*24:
                 self.info('Invalid interval time')
             else:
-                resp = self.conn.exchange(inp)
+                resp = self.conn.exchange(' '.join(argv))
                 msg = 'successful' if resp == 'done' else 'error: ' + resp
                 self.info('chint ({}) {}'.format(num, msg))
         else:
             # no argument
-            print self.conn.exchange(inp)
+            print self.conn.exchange(argv[0])
 
 
 def get_args():
