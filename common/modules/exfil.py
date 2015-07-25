@@ -1,4 +1,5 @@
 import module
+import config as CFG
 
 import os
 import zlib
@@ -6,9 +7,9 @@ import zlib
 MODNAME = 'exfil'
 USAGE = """Exfiltrate files.
 usage: exfil [-h] file1 [file2 file3 ...]
-\nDownloads files to {}/'.format(OUT)
+\nDownloads files to {}/
 \noptions:
--h\t\tshow help"""
+-h\t\tshow help""".format(CFG.ARCHIVE_DIR)
 
 
 @module.server_handler(MODNAME)

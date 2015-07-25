@@ -18,7 +18,6 @@ from poetsocket import *
 
 __version__ = '0.4.3'
 
-ARCHIVE_DIR = 'archive'
 POSH_PROMPT = 'posh > '
 FAKEOK = """HTTP/1.1 200 OK\r
 Date: Tue, 19 Mar 2013 22:12:25 GMT\r
@@ -202,7 +201,7 @@ class PoetServer(object):
         """
 
         ts = datetime.now().strftime('%Y%m%d%M%S')
-        out_ts_dir = '{}/{}'.format(ARCHIVE_DIR, ts[:len('yyyymmdd')])
+        out_ts_dir = '{}/{}'.format(CFG.ARCHIVE_DIR, ts[:len('yyyymmdd')])
         out_prefix_dir = '{}/{}'.format(out_ts_dir, prefix)
 
         # create filename to write to
@@ -215,8 +214,8 @@ class PoetServer(object):
             outfile = '{}/{}-{}.txt'.format(out_prefix_dir, prefix, ts)
 
         # create directories if they don't exist
-        if not os.path.isdir(ARCHIVE_DIR):
-            os.mkdir(ARCHIVE_DIR)
+        if not os.path.isdir(CFG.ARCHIVE_DIR):
+            os.mkdir(CFG.ARCHIVE_DIR)
         if not os.path.isdir(out_ts_dir):
             os.mkdir(out_ts_dir)
         if not os.path.isdir(out_prefix_dir):
