@@ -14,7 +14,7 @@ usage: shell [-h]
 
 
 @module.server_handler(MODNAME)
-def server_shell(server, argv):
+def server(server, argv):
     if len(argv) > 1:
         print USAGE
         return
@@ -59,7 +59,7 @@ target. Continue? (y/n)""",
 
 
 @module.client_handler(MODNAME)
-def client_shell(client, inp):
+def client(client, inp):
     """Posh `shell' command client-side.
 
     Create a subprocess for command and line buffer command output to

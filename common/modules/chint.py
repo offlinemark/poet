@@ -1,7 +1,5 @@
 import module
 
-import zlib
-
 MODNAME = 'chint'
 USAGE = """Print or change client delay interval.
 usage: chint [-h] [seconds]
@@ -13,7 +11,7 @@ Minimum allowed value is 1.
 
 
 @module.server_handler(MODNAME)
-def server_exec(server, argv):
+def server(server, argv):
     if '-h' in argv or '--help' in argv:
         print USAGE
         return
@@ -37,7 +35,7 @@ def server_exec(server, argv):
 
 
 @module.client_handler(MODNAME)
-def client_shell(client, inp):
+def client(client, inp):
     if inp == 'chint':
         # no arg, so just send back the interval
         client.s.send(str(client.get_args_interval()))
