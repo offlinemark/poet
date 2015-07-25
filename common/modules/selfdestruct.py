@@ -19,7 +19,7 @@ def server(server, argv):
         print """[!] WARNING: You are about to permanently remove the client from the target.
     You will immediately lose access to the target. Continue? (y/n)""",
         if raw_input().lower()[0] == 'y':
-            resp = server.conn.exchange('selfdestruct')
+            resp = server.conn.exchange(MODNAME)
             if resp == 'boom':
                 debug.info('Exiting control shell')
                 server.continue_ = False

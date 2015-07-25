@@ -34,6 +34,7 @@ def server(server, argv):
     """
 
     # your code goes here
+    print 'template module, does nothing'
     pass
 
 

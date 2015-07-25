@@ -1,5 +1,7 @@
 import module
 
+import zlib
+
 MODNAME = 'chint'
 USAGE = """Print or change client delay interval.
 usage: chint [-h] [seconds]

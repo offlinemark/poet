@@ -45,7 +45,7 @@ def load_modules():
             if mod == '__init__':
                 continue
             elif mod in server_commands.keys():
-                raise Exception('duplicate module detected')
+                raise Exception('duplicate module detected: {}'.format(mod))
 
             import_module('modules.' + mod)
             # TODO : validate module structure for required functions
