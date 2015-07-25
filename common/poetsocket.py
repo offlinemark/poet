@@ -31,7 +31,7 @@ class PoetSocket(object):
         """Send message over socket."""
 
         pkg = base64.b64encode(msg)
-        pkg_size = struct.pack('>i', len(pkg))
+        pkg_size = struct.pack('>I', len(pkg))
         sent = self.s.sendall(pkg_size + pkg)
         if sent:
             raise socket.error('socket connection broken')
@@ -47,7 +47,8 @@ class PoetSocket(object):
         bytes_recvd = 0
 
         # In case we don't get all 4 bytes of the prefix the first recv(),
-        # this ensures we'll eventually get it intact
+        # this ensures we'll eventually get it intact. This while loop
+        # gets the first 4 bytes and nothing more.
         while bytes_recvd < PREFIX_LEN:
             chunk = self.s.recv(min(PREFIX_LEN - bytes_recvd, PREFIX_LEN))
             if not chunk:
@@ -55,16 +56,24 @@ class PoetSocket(object):
             chunks.append(chunk)
             bytes_recvd += len(chunk)
 
-        initial = ''.join(chunks)
-        msglen, initial = (struct.unpack('>I', initial[:PREFIX_LEN])[0],
-                           initial[PREFIX_LEN:])
+        # repackage together the header 4 bytes if they came separately
+        # and unpack into and int
+        header = ''.join(chunks)
+        msglen = struct.unpack('>I', header)[0]
+
+        # clear out the chunks list, from now on it'll contain the data sent
         del chunks[:]
-        bytes_recvd = len(initial)
-        chunks.append(initial)
+
+        # reset bytes_recvd counter for 0 out of msglen received
+        bytes_recvd = 0
+
+        # now receive the rest of the data using the received message length
         while bytes_recvd < msglen:
             chunk = self.s.recv(min((msglen - bytes_recvd, SIZE)))
             if not chunk:
                 raise socket.error('socket connection broken')
             chunks.append(chunk)
             bytes_recvd += len(chunk)
+
+        # join all the chunks received, base64 decode, and return
         return base64.b64decode(''.join(chunks))
