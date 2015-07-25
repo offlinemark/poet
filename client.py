@@ -106,7 +106,9 @@ class PoetClient(object):
         args.interval = new_interval
 
     def cmd_exec(self, cmd):
-        """Light wrapper over subprocess.Popen()."""
+        """Light wrapper over subprocess.Popen() for executing a command,
+        blocking on it, and returning stdout/stderr
+        """
 
         return sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT,
                         shell=True).communicate()[0]
