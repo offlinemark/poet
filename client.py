@@ -65,9 +65,6 @@ class PoetClient(object):
                 if inp == 'fin':
                     found = True
                     break
-                elif inp.startswith('chint'):
-                    found = True
-                    self.chint(self.s, inp)
 
                 # elif re.search('^exec ("[^"]+"\ )+$', inp + ' '):
                 #     s.send(self.execute(inp))
@@ -200,6 +197,18 @@ class PoetClient(object):
         """
 
         selfdestruct()
+
+    def get_args_interval(self):
+        """Helper function for chint module.
+        """
+
+        return args.interval
+
+    def set_args_interval(self, new_interval):
+        """Helper function for chint module.
+        """
+
+        args.interval = new_interval
 
     def cmd_exec(self, cmd):
         """Light wrapper over subprocess.Popen()."""

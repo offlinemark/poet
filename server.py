@@ -127,13 +127,6 @@ class PoetServer(object):
                 elif argv[0] == 'help':
                     found = True
                     print 'Commands:\n  {}'.format('\n  '.join(sorted(self.builtins + module.server_commands.keys())))
-                elif argv[0] == 'chint':
-                    found = True
-                    if '-h' in argv or '--help' in argv:
-                        self.cmd_help(8)
-    # if len(argv) < 2 or argv[1] in ('-h', '--help') or not REGEX.match(' '.join(argv) + ' '):
-                    else:
-                        self.chint(argv)
 
                 # try to find command in registered modules
                 for cmd, func in module.server_commands.iteritems():
@@ -145,7 +138,7 @@ class PoetServer(object):
                             self.info(str(e.args))
 
                 # see comment above for self._continue for why this is here
-                if not self._continue:
+                if not self.continue_:
                     return
 
                 if not found:

@@ -8,8 +8,7 @@ USAGE = """Self destruct.
 usage: selfdestruct [-h]
 \nPermanently remove client from target.
 \noptions:
--h\t\tshow help
-"""
+-h\t\tshow help"""
 
 
 @module.server_handler(MODNAME)
