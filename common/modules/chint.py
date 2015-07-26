@@ -21,7 +21,7 @@ def server(server, argv):
         try:
             num = int(argv[1])
         except ValueError:
-            server.cmd_help(8)
+            print USAGE
             return
         if num < 1:
             server.info('Invalid interval time')
@@ -41,13 +41,10 @@ def client(client, inp):
         client.s.send(str(client.get_args_interval()))
     else:
         # set interval to arg
-        try:
-            num = int(inp.split()[1])
-            if num < 1:
-                msg = 'Invalid interval time.'
-            else:
-                client.set_args_interval(num)
-                msg = 'done'
-            client.s.send(msg)
-        except Exception as e:
-            client.s.send(str(e.message))
+        num = int(inp.split()[1])
+        if num < 1:
+            msg = 'Invalid interval time.'
+        else:
+            client.set_args_interval(num)
+            msg = 'done'
+        client.s.send(msg)
