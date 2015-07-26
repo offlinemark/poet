@@ -30,10 +30,7 @@ def server(server, argv):
 
 
 @module.client_handler(MODNAME)
-def client(server, argv):
-    try:
-        server.selfdestruct()
-        server.s.send('boom')
-        sys.exit()
-    except Exception as e:
-        server.s.send(str(e.message))
+def client(client, argv):
+    client.selfdestruct()
+    client.s.send('boom')
+    sys.exit()
