@@ -16,8 +16,10 @@ import module
 #
 
 MODNAME = 'template'
-USAGE = """
-"""
+USAGE = """Brief description of module.
+usage: template [-h] args go here etc
+\noptions:
+-h\t\tshow help"""
 
 #
 # handlers
