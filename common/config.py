@@ -2,7 +2,7 @@
 # Poet Configurations
 #
 
-# client authentication token
+# default client authentication token. change this to whatever you want!
 AUTH = 'b9c39a336bb97a9c9bda2b82bdaacff3'
 
 # directory to save output files to
