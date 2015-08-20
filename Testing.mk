@@ -11,8 +11,8 @@ DELAY = 1
 PORT = -p 8081
 PYTHON = python2.7
 
-CL = common/client.py
-SV = common/server.py
+CL = poet/client.py
+SV = poet/server.py
 
 # debug mode helpers
 
