@@ -158,6 +158,8 @@ def is_active(host, port):
         f = urllib2.urlopen(req)
         if f.code == 200:
             return True
+        # shouldn't get here
+        return False
     except urllib2.URLError:
         return False
 

@@ -52,8 +52,11 @@ class PoetServer(object):
     def __init__(self, s):
         self.s = s
         self.conn = None
-        self.builtins = ['exit', 'help']
-        # exists so modules can stop server (used by selfdestruct)
+        self.builtins = {
+            'exit': self._builtin_exit,
+            'help': self._builtin_help
+        }
+        # exists so modules can stop server (used by selfdestruct and exit)
         self.continue_ = True
 
     def start(self):
@@ -65,40 +68,23 @@ class PoetServer(object):
         print 'Running `help\' will give you a list of supported commands.'
         while True:
             try:
-                found = False
                 argv = raw_input(POSH_PROMPT).split()
-
-                #
-                # builtins
-                #
-
-                if argv == []:
+                if not argv:
                     continue
-                if argv[0] == 'exit':
-                    break
-                elif argv[0] == 'help':
-                    found = True
-                    print 'Commands:\n  {}'.format('\n  '.join(sorted(self.builtins + module.server_commands.keys())))
 
-                #
-                # modules
-                #
-
-                # try to find command in registered modules
-                for cmd, func in module.server_commands.iteritems():
-                    if argv[0] == cmd:
-                        found = True
-                        try:
-                            func(self, argv)
-                        except Exception as e:
-                            self.info(str(e.args))
+                if argv[0] in self.builtins:
+                    self.builtins[argv[0]](argv)
+                elif argv[0] in module.server_commands:
+                    try:
+                        module.server_commands[argv[0]](self, argv)
+                    except Exception as e:
+                        self.info(str(e.args))
+                else:
+                    self.info('{}: command not found'.format(argv[0]))
 
                 # see comment above for self.continue_ for why this is here
                 if not self.continue_:
-                    return
-
-                if not found:
-                    self.info('{}: command not found'.format(argv[0]))
+                    break
             except KeyboardInterrupt:
                 print
                 continue
@@ -194,6 +180,15 @@ class PoetServer(object):
             del tmp[1]
         tmp = ' '.join(tmp)
         return tmp, write_flag, write_file
+    
+    def _builtin_exit(self, argv):
+        self.continue_ = False
+
+    def _builtin_help(self, argv):
+        print 'Builtins:\n  {}'.format('\n  '.join(sorted(self.builtins.keys())))
+        print
+        print 'Commands:\n  {}'.format('\n  '.join(sorted(module.server_commands.keys())))
+
 
 
 def get_args():
