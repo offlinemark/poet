@@ -14,7 +14,7 @@ import module
 import config as CFG
 from poetsocket import *
 
-__version__ = '0.4.4'
+__version__ = '0.4.5'
 
 POSH_PROMPT = 'posh > '
 FAKEOK = """HTTP/1.1 200 OK\r
