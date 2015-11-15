@@ -68,7 +68,6 @@ class PoetServer(object):
         print 'Running `help\' will give you a list of supported commands.'
         while True:
             try:
-                # found = False
                 argv = raw_input(POSH_PROMPT).split()
                 if not argv:
                     continue
