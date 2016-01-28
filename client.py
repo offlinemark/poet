@@ -54,23 +54,20 @@ class PoetClient(object):
         self.s = PoetSocketClient(self.host, self.port)
         while True:
             try:
-                found = False
                 inp = self.s.recv()
 
                 if inp == 'fin':
-                    found = True
                     break
 
-                for cmd, func in module.client_commands.iteritems():
-                    if inp.split()[0] == cmd:
-                        found = True
-                        try:
-                            func(self, inp)
-                        except Exception as e:
-                            self.s.send(str(e.args))
-
-                if not found:
+                argv0 = inp.split()[0]
+                if argv0 in module.client_commands:
+                    try:
+                        module.client_commands[argv0](self, inp)
+                    except Exception as e:
+                        self.s.send(str(e.args))
+                else:
                     self.s.send('Unrecognized')
+
             except socket.error as e:
                 if e.message == 'too much data!':
                     self.s.send('posh : ' + e.message)
